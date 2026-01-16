@@ -60,6 +60,9 @@ public class LoginDialog extends JDialog {
             }
         });
 
+        // Bind the Enter key to the login button
+        getRootPane().setDefaultButton(loginButton);
+
         // Set dialog properties
         pack(); // Size the dialog to fit its components
     }
