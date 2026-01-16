@@ -55,7 +55,7 @@ public class JsonFileHandler {
 
             for (int i = 0; i < tenantsArray.length(); i++) {
                 JSONObject tenantObject = tenantsArray.getJSONObject(i);
-                TenantCredentials credentials = new TenantCredentials(tenantObject.getString(JSON_KEY_NAME), tenantObject.getBoolean(JSON_KEY_CRITICAL), tenantObject.getString(JSON_KEY_URL), tenantObject.getString(JSON_KEY_TOKEN_URL), tenantObject.getString(JSON_KEY_CLIENT_ID), tenantObject.getString(JSON_KEY_CLIENT_SECRET));
+                TenantCredentials credentials = new TenantCredentials(tenantObject.getString(JSON_KEY_NAME), tenantObject.getBoolean(JSON_KEY_CRITICAL), tenantObject.getString(JSON_KEY_URL), tenantObject.getString(JSON_KEY_CLIENT_ID));
                 if (tenantObject.has(JSON_KEY_ACCESS_TOKEN) && tenantObject.has(JSON_KEY_TOKEN_EXPIRATION_DATE_TIME)) {
                     credentials.setAccessToken(tenantObject.getString(JSON_KEY_ACCESS_TOKEN));
                     credentials.setTokenExpirationDateTime(tenantObject.getString(JSON_KEY_TOKEN_EXPIRATION_DATE_TIME));
@@ -81,9 +81,9 @@ public class JsonFileHandler {
                 JSONObject tenantObject = new JSONObject();
                 tenantObject.put(JSON_KEY_NAME, tenant.getName());
                 tenantObject.put(JSON_KEY_CRITICAL, tenant.isCritical());
-                tenantObject.put(JSON_KEY_CLIENT_ID, tenant.getClientid());
-                tenantObject.put(JSON_KEY_CLIENT_SECRET, tenant.getClientsecret());
-                tenantObject.put(JSON_KEY_TOKEN_URL, tenant.getTokenurl());
+                tenantObject.put(JSON_KEY_CLIENT_ID, tenant.getUserName());
+                //tenantObject.put(JSON_KEY_CLIENT_SECRET, tenant.getClientsecret());
+//                tenantObject.put(JSON_KEY_TOKEN_URL, tenant.getTokenurl());
                 tenantObject.put(JSON_KEY_URL, tenant.getUrl());
                 tenantObject.put(JSON_KEY_ACCESS_TOKEN, tenant.getAccessToken());
                 tenantObject.put(JSON_KEY_TOKEN_EXPIRATION_DATE_TIME, tenant.getTokenExpirationDateTime());
@@ -163,7 +163,7 @@ public class JsonFileHandler {
 
             for (int i = 0; i < tenantsArray.length(); i++) {
                 JSONObject tenantObject = tenantsArray.getJSONObject(i);
-                TenantCredentials tenant = new TenantCredentials(tenantObject.getString(JSON_KEY_NAME), tenantObject.getBoolean(JSON_KEY_CRITICAL), tenantObject.getString(JSON_KEY_URL), tenantObject.getString(JSON_KEY_TOKEN_URL), tenantObject.getString(JSON_KEY_CLIENT_ID), tenantObject.getString(JSON_KEY_CLIENT_SECRET));
+                TenantCredentials tenant = new TenantCredentials(tenantObject.getString(JSON_KEY_NAME), tenantObject.getBoolean(JSON_KEY_CRITICAL), tenantObject.getString(JSON_KEY_URL), tenantObject.getString(JSON_KEY_CLIENT_ID));
                 if (tenantObject.has(JSON_KEY_ACCESS_TOKEN) && tenantObject.has(JSON_KEY_TOKEN_EXPIRATION_DATE_TIME)) {
                     tenant.setAccessToken(tenantObject.getString(JSON_KEY_ACCESS_TOKEN));
                     tenant.setTokenExpirationDateTime(tenantObject.getString(JSON_KEY_TOKEN_EXPIRATION_DATE_TIME));

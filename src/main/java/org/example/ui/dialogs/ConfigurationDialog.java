@@ -17,9 +17,7 @@ public class ConfigurationDialog extends JDialog {
     private final JTextField tenantNameField;
     private final JCheckBox criticalCheckBox;
     private final JTextField urlField;
-    private final JTextField tokenUrlField;
     private final JTextField clientIdField;
-    private final JPasswordField clientSecretField;
 
     private TenantCredentials tenantValues;
 
@@ -40,9 +38,7 @@ public class ConfigurationDialog extends JDialog {
         tenantNameField = new JTextField(UI_TEXT_FIELD_COLUMNS);
         criticalCheckBox = new JCheckBox();
         urlField = new JTextField(UI_TEXT_FIELD_COLUMNS);
-        tokenUrlField = new JTextField(UI_TEXT_FIELD_COLUMNS);
         clientIdField = new JTextField(UI_TEXT_FIELD_COLUMNS);
-        clientSecretField = new JPasswordField(UI_TEXT_FIELD_COLUMNS);
 
         cancelButton = new JButton(LABEL_CANCEL);
         saveButton = new JButton(LABEL_SAVE);
@@ -85,26 +81,12 @@ public class ConfigurationDialog extends JDialog {
         gbc.gridx = 1;
         add(urlField, gbc);
 
-        // Token URL
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        add(new JLabel(colonAsterisk(LABEL_TOKEN_URL)), gbc);
-        gbc.gridx = 1;
-        add(tokenUrlField, gbc);
-
         // Client ID
         gbc.gridx = 0;
         gbc.gridy = 4;
         add(new JLabel(colonAsterisk(LABEL_CLIENT_ID)), gbc);
         gbc.gridx = 1;
         add(clientIdField, gbc);
-
-        // Client Secret
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        add(new JLabel(colonAsterisk(LABEL_CLIENT_SECRET)), gbc);
-        gbc.gridx = 1;
-        add(clientSecretField, gbc);
 
         // Buttons
         gbc.gridx = 1;
@@ -128,7 +110,7 @@ public class ConfigurationDialog extends JDialog {
 
         saveButton.addActionListener(e -> {
             if (areFieldsValid()) {
-                TenantCredentials newTenant = new TenantCredentials(tenantNameField.getText().trim(), criticalCheckBox.isSelected(), urlField.getText().trim(), tokenUrlField.getText().trim(), clientIdField.getText().trim(), new String(clientSecretField.getPassword()).trim(), null, null);
+                TenantCredentials newTenant = new TenantCredentials(tenantNameField.getText().trim(), criticalCheckBox.isSelected(), urlField.getText().trim(), clientIdField.getText().trim(), null, null);
 
                 try {
                     if (dialogTitle.equals(LABEL_EDIT_SELECTED_TENANT)) { // edit tenant
@@ -168,14 +150,10 @@ public class ConfigurationDialog extends JDialog {
                     JSONObject jsonObject = new JSONObject(content);
 
                     String url = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_URL);
-                    String tokenUrl = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_TOKEN_URL);
                     String clientId = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_CLIENT_ID);
-                    String clientSecret = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_CLIENT_SECRET);
 
                     urlField.setText(url + PATH_TO_API);
-                    tokenUrlField.setText(tokenUrl);
                     clientIdField.setText(clientId);
-                    clientSecretField.setText(clientSecret);
                 } catch (IOException ex) {
                     LOGGER.error(ex);
                     JOptionPane.showMessageDialog(this, LABEL_ERROR_READING_JSON_FILE, LABEL_ERROR, JOptionPane.ERROR_MESSAGE);
@@ -185,29 +163,26 @@ public class ConfigurationDialog extends JDialog {
     }
 
     public void setInputFieldValues(TenantCredentials tenant) {
-        setInputFieldValues(tenant.getName(), tenant.isCritical(), tenant.getUrl(), tenant.getTokenurl(), tenant.getClientid(), tenant.getClientsecret());
+        setInputFieldValues(tenant.getName(), tenant.isCritical(), tenant.getUrl(), tenant.getUserName());
         tenantValues = tenant;
     }
 
     public void setEmptyValues() {
-        setInputFieldValues(null, false, null, null, null, null);
+        setInputFieldValues(null, false, null, null);
         tenantValues = null;
     }
 
-    public void setInputFieldValues(String name, boolean isCritical, String url, String tokenurl, String clientId, String clientSecret) {
+    public void setInputFieldValues(String name, boolean isCritical, String url, String clientId) {
         tenantNameField.setText(name);
         criticalCheckBox.setSelected(isCritical);
         urlField.setText(url);
-        tokenUrlField.setText(tokenurl);
         clientIdField.setText(clientId);
-        clientSecretField.setText(clientSecret);
     }
 
     private boolean areFieldsValid() {
         return !tenantNameField.getText().trim().isEmpty() &&
                 !urlField.getText().trim().isEmpty() &&
-                !tokenUrlField.getText().trim().isEmpty() &&
-                !clientIdField.getText().trim().isEmpty() &&
-                clientSecretField.getPassword().length > 0;
+
+                !clientIdField.getText().trim().isEmpty();
     }
 }

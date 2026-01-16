@@ -86,9 +86,8 @@ public class MainFrame extends JFrame {
                 String url = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_URL) + PATH_TO_API;
                 String tokenUrl = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_TOKEN_URL);
                 String clientId = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_CLIENT_ID);
-                String clientSecret = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_CLIENT_SECRET);
 
-                TenantCredentials tenant = getTenantObjectByCredentials(url, tokenUrl, clientId, clientSecret);
+                TenantCredentials tenant = getTenantObjectByCredentials(url, clientId);
 
                 dialogEdit = new ConfigurationDialog(this, LABEL_EDIT_SELECTED_TENANT, tenant);
 
@@ -144,7 +143,7 @@ public class MainFrame extends JFrame {
                 deleteTenant = option == 0; // option 0 = delete; option 1 = cancel
 
                 if (deleteTenant) {
-                    jsonFileHandler.deleteTenant(getTenantObjectByCredentials(selectedTenant.getUrl(), selectedTenant.getTokenurl(), selectedTenant.getClientid(), selectedTenant.getClientsecret()));
+                    jsonFileHandler.deleteTenant(getTenantObjectByCredentials(selectedTenant.getUrl(), selectedTenant.getUserName()));
                     updateTenantDropdown();
                     setSelectedTenant(tenantCredentialsList.get(0).getName());
                 }
@@ -192,7 +191,6 @@ public class MainFrame extends JFrame {
                 try {
                     LOGGER.info("Tenant \"{}\" selected with URL {}", selectedTenant.getName(), selectedTenant.getUrl());
                     httpRequestHandler = new HttpRequestHandler(selectedTenant);
-
                     getAndShowLatestAlternativePartners();
                 } catch (Exception e) {
                     httpErrorShowEmptyTable(e);

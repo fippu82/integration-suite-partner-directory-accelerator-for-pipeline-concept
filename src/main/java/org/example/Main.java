@@ -1,6 +1,7 @@
 package org.example;
 
 import org.example.ui.MainFrame;
+import org.example.ui.dialogs.LoginDialog;
 import org.example.utils.JsonFileHandler;
 import org.example.utils.TenantCredentials;
 
@@ -16,6 +17,7 @@ import static org.example.utils.SharedData.*;
 public class Main {
 
     public static void main(String[] args) {
+
         LOGGER.info("App started");
 
         final String locationToCredentials;
@@ -31,19 +33,30 @@ public class Main {
             LOGGER.error(e);
         }
 
-        jsonFileHandler = new JsonFileHandler();
-        List<TenantCredentials> tenants = jsonFileHandler.readJsonFile();
-        LOGGER.info("Existing Tenant Credentials:");
-        for (TenantCredentials tenant : tenants) {
-            LOGGER.info("{} ({})", tenant.getName(), tenant.getUrl());
-        }
 
         SwingUtilities.invokeLater(() -> {
-            try {
-                new MainFrame(locationToCredentials).setVisible(true);
-            } catch (Exception e) {
-                LOGGER.error(e);
+            // Create and show the login dialog to get the password from user
+            LoginDialog loginDialog = new LoginDialog(null);
+            loginDialog.setVisible(true);
+
+            // load tenant data from JSON
+            jsonFileHandler = new JsonFileHandler();
+            List<TenantCredentials> tenants = jsonFileHandler.readJsonFile();
+            LOGGER.info("Existing Tenant Credentials:");
+            for (TenantCredentials tenant : tenants) {
+                LOGGER.info("{} ({})", tenant.getName(), tenant.getUrl());
             }
+
+            // show main window
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    new MainFrame(locationToCredentials).setVisible(true);
+                } catch (Exception e) {
+                    LOGGER.error(e);
+                }
+            });
         });
+
+
     }
 }

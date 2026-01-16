@@ -13,32 +13,26 @@ public class TenantCredentials {
     private final String name;
     private final boolean critical;
     private final String url;
-    private final String tokenurl;
-    private final String clientid;
-    private final String clientsecret;
+    private final String userName;
     private String accessToken;
     private String tokenExpirationDateTime;
     private Map<String, String> cookies = new HashMap<>();
     private Map<String, String> csrfTokens = new HashMap<>();
 
-    public TenantCredentials(String name, boolean critical, String url, String tokenurl, String clientid, String clientsecret, String accessToken, String tokenExpirationDateTime) {
+    public TenantCredentials(String name, boolean critical, String url, String userName, String accessToken, String tokenExpirationDateTime) {
         this.name = name;
         this.critical = critical;
         this.url = url;
-        this.tokenurl = tokenurl;
-        this.clientid = clientid;
-        this.clientsecret = clientsecret;
+        this.userName = userName;
         this.accessToken = accessToken;
         this.tokenExpirationDateTime = tokenExpirationDateTime;
     }
 
-    public TenantCredentials(String name, boolean critical, String url, String tokenurl, String clientid, String clientsecret) {
+    public TenantCredentials(String name, boolean critical, String url, String userName) {
         this.name = name;
         this.critical = critical;
         this.url = url;
-        this.tokenurl = tokenurl;
-        this.clientid = clientid;
-        this.clientsecret = clientsecret;
+        this.userName = userName;
     }
 
     public String getName() {
@@ -53,16 +47,8 @@ public class TenantCredentials {
         return url;
     }
 
-    public String getTokenurl() {
-        return tokenurl;
-    }
-
-    public String getClientid() {
-        return clientid;
-    }
-
-    public String getClientsecret() {
-        return clientsecret;
+    public String getUserName() {
+        return userName;
     }
 
     public String getAccessToken() {
@@ -137,15 +123,13 @@ public class TenantCredentials {
     }
 
 
-    public static TenantCredentials getTenantObjectByCredentials(String url, String tokenurl, String clientid, String clientsecret) {
+    public static TenantCredentials getTenantObjectByCredentials(String url, String clientid) {
         return tenantCredentialsList.stream()
                 .filter(tenant -> tenant.getUrl().equals(url) &&
-                        tenant.getTokenurl().equals(tokenurl) &&
-                        tenant.getClientid().equals(clientid) &&
-                        tenant.getClientsecret().equals(clientsecret))
+                        tenant.getUserName().equals(clientid))
                 .findFirst()
                 .orElseGet(() -> {
-                    TenantCredentials newTenant = new TenantCredentials(url, false, url, tokenurl, clientid, clientsecret, null, null);
+                    TenantCredentials newTenant = new TenantCredentials(url, false, url, clientid, null, null);
                     tenantCredentialsList.add(newTenant);
                     return newTenant;
                 });

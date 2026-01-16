@@ -35,8 +35,7 @@ public final class SharedData {
     public static final String LABEL_BUTTON_DESELECT_ALL = "Deselect all shown entries";
     public static final String LABEL_BUTTON_SELECT_ALL = "Select all shown entries";
     public static final String LABEL_CANCEL = "Cancel";
-    public static final String LABEL_CLIENT_ID = "Client ID";
-    public static final String LABEL_CLIENT_SECRET = "Client Secret";
+    public static final String LABEL_CLIENT_ID = "Personal SAP User (Email/S-User)";
     public static final String LABEL_COMBINED_XSLT = "Combined XSLT";
     public static final String LABEL_CONFIRMATION = "Confirmation";
     public static final String LABEL_CONDITION = "XPath Condition";
@@ -129,7 +128,7 @@ public final class SharedData {
     public static final String LABEL_TRANSPORT_NOT_FOUND_BINARY = "No binary parameters found for selected Pids.";
     public static final String LABEL_TRANSPORT_NOT_FOUND_STRING = "No string parameters found for selected Pids.";
     public static final String LABEL_UPDATE_RECEIVERS = "Update receivers";
-    public static final String LABEL_URL = "URL";
+    public static final String LABEL_URL = "URL (add \"/api/v1/\")";
     public static final String LABEL_VALUE = "Value";
     public static final String LABEL_WARNING = "Warning";
     public static final String LABEL_WARNING_DELETE_LAST_ROW = "Cannot delete the last row.";
@@ -259,6 +258,7 @@ public final class SharedData {
 
     public static List<TenantCredentials> tenantCredentialsList = new ArrayList<>();
     public static String currentTenantName;
+    public static String userPassword;
 
     private SharedData() {
 

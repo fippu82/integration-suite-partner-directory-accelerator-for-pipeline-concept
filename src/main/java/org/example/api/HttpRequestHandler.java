@@ -2,11 +2,14 @@ package org.example.api;
 
 import org.apache.commons.codec.binary.Hex;
 import org.example.model.AlternativePartner;
+import org.example.ui.pages.AlternativePartnersPage;
 import org.example.utils.TenantCredentials;
+import org.example.ui.MainFrame;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -31,6 +34,7 @@ public class HttpRequestHandler {
     private final int indentFactor = 4;
     private final String url;
     private final String authString;
+    private String error = "";
 
     private final TenantCredentials tenantCredentials;
 
@@ -42,7 +46,7 @@ public class HttpRequestHandler {
 
         this.client = HttpClient.newHttpClient();
        
-        this.authString = "Basic " + Base64.getEncoder().encodeToString((tenantCredentials.getClientid() + ":" + tenantCredentials.getClientsecret()).getBytes());
+        this.authString = "Basic " + Base64.getEncoder().encodeToString((tenantCredentials.getUserName() + ":" + userPassword).getBytes());
 
         /*String token;
         if (tenantCredentials.isTokenValid()) {
@@ -57,31 +61,30 @@ public class HttpRequestHandler {
                 .header("Authorization", this.authString)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json");
-
     }
 
-    private String requestToken() throws IOException, InterruptedException {
-        HttpRequest requestToken = HttpRequest.newBuilder()
-                .uri(URI.create(tenantCredentials.getTokenurl()))
-                .header("Authorization", this.authString)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials"))
-                .build();
-
-        HttpResponse<String> responseToken = client.send(requestToken, HttpResponse.BodyHandlers.ofString());
-        logHttpResponse(responseToken, requestToken.method());
-
-        JSONObject tokenResponse = new JSONObject(responseToken.body());
-        String token = tokenResponse.getString(JSON_KEY_ACCESS_TOKEN);
-        long tokenExpiresInSeconds = tokenResponse.getInt(JSON_KEY_EXPIRES_IN);
-        String tokenExpirationDateTime = calculateExpirationDateTime(tokenExpiresInSeconds);
-
-        tenantCredentials.setAccessToken(token);
-        tenantCredentials.setTokenExpirationDateTime(tokenExpirationDateTime);
-        jsonFileHandler.saveJsonFile();
-
-        return token;
-    }
+//    private String requestToken() throws IOException, InterruptedException {
+//        HttpRequest requestToken = HttpRequest.newBuilder()
+//                .uri(URI.create(tenantCredentials.getTokenurl()))
+//                .header("Authorization", this.authString)
+//                .header("Content-Type", "application/x-www-form-urlencoded")
+//                .POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials"))
+//                .build();
+//
+//        HttpResponse<String> responseToken = client.send(requestToken, HttpResponse.BodyHandlers.ofString());
+//        logHttpResponse(responseToken, requestToken.method());
+//
+//        JSONObject tokenResponse = new JSONObject(responseToken.body());
+//        String token = tokenResponse.getString(JSON_KEY_ACCESS_TOKEN);
+//        long tokenExpiresInSeconds = tokenResponse.getInt(JSON_KEY_EXPIRES_IN);
+//        String tokenExpirationDateTime = calculateExpirationDateTime(tokenExpiresInSeconds);
+//
+//        tenantCredentials.setAccessToken(token);
+//        tenantCredentials.setTokenExpirationDateTime(tokenExpirationDateTime);
+//        jsonFileHandler.saveJsonFile();
+//
+//        return token;
+//    }
 
     private String requestCsrfToken(String endpoint) throws IOException, InterruptedException {
         String csrfToken = "";
@@ -736,7 +739,7 @@ public class HttpRequestHandler {
         return filterBuilder.toString();
     }
 
-    private String logHttpResponse(HttpResponse<String> response, String requestMethod) {
+    private String logHttpResponse(HttpResponse<String> response, String requestMethod) throws IOException {
         int statusCode = response.statusCode();
         String responseType;
         if (statusCode >= 200 && statusCode <= 299) {
@@ -746,10 +749,18 @@ public class HttpRequestHandler {
             responseType = LABEL_HTTP_ERROR;
             LOGGER.error(response);
             LOGGER.error(response.body());
+            error = response.body();
         } else {
             responseType = LABEL_HTTP_WARNING;
+            error = response.body();
             LOGGER.warn(response);
         }
+
+        if (!error.isEmpty()) { throw new IOException(error); }
         return responseType + ": " + requestMethod + " Status Code: " + response.statusCode();
+    }
+
+    public String getError() {
+        return error;
     }
 }
