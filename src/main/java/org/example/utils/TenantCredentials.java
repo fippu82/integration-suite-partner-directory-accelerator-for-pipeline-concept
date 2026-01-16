@@ -3,7 +3,9 @@ package org.example.utils;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.example.utils.SharedData.*;
 
@@ -16,6 +18,8 @@ public class TenantCredentials {
     private final String clientsecret;
     private String accessToken;
     private String tokenExpirationDateTime;
+    private Map<String, String> cookies = new HashMap<>();
+    private Map<String, String> csrfTokens = new HashMap<>();
 
     public TenantCredentials(String name, boolean critical, String url, String tokenurl, String clientid, String clientsecret, String accessToken, String tokenExpirationDateTime) {
         this.name = name;
@@ -65,8 +69,22 @@ public class TenantCredentials {
         return accessToken;
     }
 
+
+    public String getCsrfToken(String endpoint) {
+        if (csrfTokens.get(endpoint) != null && ! csrfTokens.get(endpoint).isEmpty() ){
+            return csrfTokens.get(endpoint);
+        }
+        else {
+            return "";
+        }
+    }
+
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
+    }
+
+    public void setCsrfToken(String endpoint, String token) {
+        this.csrfTokens.put(endpoint, token);
     }
 
     public String getTokenExpirationDateTime() {
@@ -131,5 +149,18 @@ public class TenantCredentials {
                     tenantCredentialsList.add(newTenant);
                     return newTenant;
                 });
+    }
+
+    public String getCookie(String endpoint) {
+        if (cookies.get(endpoint) != null &&! cookies.get(endpoint).isEmpty() ){
+            return cookies.get(endpoint);
+        }
+        else {
+            return "";
+        }
+    }
+
+    public void setCookie(String endpoint, String cookie) {
+        this.cookies.put(endpoint, cookie);
     }
 }

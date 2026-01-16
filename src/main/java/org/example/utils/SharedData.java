@@ -183,6 +183,7 @@ public final class SharedData {
     public static final String TENANTS_FILE_NAME = "tenants.json";
 
     public static final String JSON_KEY_ACCESS_TOKEN = "access_token";
+    public static final String JSON_KEY_CSRF_TOKEN = "x-csrf-token";
     public static final String JSON_KEY_AGENCY = "Agency";
     public static final String JSON_KEY_CLIENT_ID = "clientid";
     public static final String JSON_KEY_CLIENT_SECRET = "clientsecret";

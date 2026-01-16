@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.example.utils.SharedData.*;
@@ -29,6 +30,7 @@ public class HttpRequestHandler {
     private final HttpClient client;
     private final int indentFactor = 4;
     private final String url;
+    private final String authString;
 
     private final TenantCredentials tenantCredentials;
 
@@ -36,28 +38,32 @@ public class HttpRequestHandler {
         this.tenantCredentials = tenantCredentials;
 
         String baseUrl = tenantCredentials.getUrl();
+        this.url = baseUrl;
 
         this.client = HttpClient.newHttpClient();
+       
+        this.authString = "Basic " + Base64.getEncoder().encodeToString((tenantCredentials.getClientid() + ":" + tenantCredentials.getClientsecret()).getBytes());
 
-        String token;
+        /*String token;
         if (tenantCredentials.isTokenValid()) {
             token = tenantCredentials.getAccessToken();
         } else {
             token = requestToken();
         }
-
+        */
         requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl))
-                .header("Authorization", "Bearer " + token)
+                //.header("Authorization", "Bearer " + token)
+                .header("Authorization", this.authString)
                 .header("Accept", "application/json")
                 .header("Content-Type", "application/json");
-        this.url = baseUrl;
+
     }
 
     private String requestToken() throws IOException, InterruptedException {
         HttpRequest requestToken = HttpRequest.newBuilder()
                 .uri(URI.create(tenantCredentials.getTokenurl()))
-                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((tenantCredentials.getClientid() + ":" + tenantCredentials.getClientsecret()).getBytes()))
+                .header("Authorization", this.authString)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString("grant_type=client_credentials"))
                 .build();
@@ -77,11 +83,48 @@ public class HttpRequestHandler {
         return token;
     }
 
+    private String requestCsrfToken(String endpoint) throws IOException, InterruptedException {
+        String csrfToken = "";
+
+        if (this.tenantCredentials.getCsrfToken(endpoint).isEmpty()) {
+            HttpRequest requestCsrfToken = HttpRequest.newBuilder()
+                    .uri(URI.create(this.url + endpoint))
+                    .header("Authorization", this.authString)
+                    .header("x-csrf-token", "fetch")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> responseCsrfToken = client.send(requestCsrfToken, HttpResponse.BodyHandlers.ofString());
+            logHttpResponse(responseCsrfToken, requestCsrfToken.method());
+
+            // extract CSRF token from headers
+            csrfToken = responseCsrfToken.headers().firstValue(JSON_KEY_CSRF_TOKEN)
+                    .orElseThrow(() -> new RuntimeException("CSRF token not found in response headers"));
+
+            this.tenantCredentials.setCsrfToken(endpoint, csrfToken);
+
+            // Extract the cookie from the response headers (Set-Cookie)
+            Optional<String> cookieHeader = responseCsrfToken.headers().firstValue("Set-Cookie");
+            if (cookieHeader.isPresent()) {
+                String cookie = cookieHeader.get();
+                this.tenantCredentials.setCookie(endpoint, cookie);
+            } else {
+                throw new RuntimeException("Cookie not found in response headers");
+            }
+        }
+        else {
+            csrfToken = this.tenantCredentials.getCsrfToken(endpoint);
+        }
+        return csrfToken;
+    }
+
     private void requestTokenIfExpired() throws IOException, InterruptedException {
-        if (!tenantCredentials.isTokenValid()) {
+        /*if (!tenantCredentials.isTokenValid()) {
             String token = requestToken();
             requestBuilder.setHeader("Authorization", "Bearer " + token);
         }
+        */
+
     }
 
     private String calculateExpirationDateTime(long tokenExpiresInSeconds) {
@@ -141,12 +184,11 @@ public class HttpRequestHandler {
     // AlternativePartners
 
     public String sendGetRequestAlternativePartners() throws IOException, InterruptedException {
-        requestTokenIfExpired();
 
         String pidsFromBinaryParameters = sendGetRequestParametersWithReceiverDetermination(API_BINARY_PARAMETERS);
         String pidsFromStringParameters = sendGetRequestParametersWithReceiverDetermination(API_STRING_PARTNERS);
         Set<String> uniquePids = jsonApiHandler.getUniquePidsFromEndpoints(pidsFromBinaryParameters, pidsFromStringParameters);
-
+        
         HttpRequest httpRequest = requestBuilder
                 .uri(URI.create(url + API_ALTERNATIVE_PARTNERS + "?$orderby=" + JSON_KEY_AGENCY))
                 .GET()
@@ -158,7 +200,6 @@ public class HttpRequestHandler {
     }
 
     public void sendGetRequestAlternativePartnersLandscape(Set<String> listSystemNames) throws IOException, InterruptedException {
-        requestTokenIfExpired();
 
         StringBuilder pidFilter = new StringBuilder();
         for (String receiverName : listSystemNames) {
@@ -182,10 +223,15 @@ public class HttpRequestHandler {
     }
 
     public String sendPostRequestAlternativePartners(String agency, String scheme, String id, String pid) throws IOException, InterruptedException {
-        requestTokenIfExpired();
+
         String jsonBody = createRequestBodyPostAlternativePartners(agency, scheme, id, pid);
-        HttpRequest httpRequest = requestBuilder
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url + API_ALTERNATIVE_PARTNERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .header("x-csrf-token", requestCsrfToken(API_ALTERNATIVE_PARTNERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_ALTERNATIVE_PARTNERS))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -193,12 +239,16 @@ public class HttpRequestHandler {
     }
 
     public String sendDeleteRequestAlternativePartners(String agency, String scheme, String id) throws IOException, InterruptedException {
-        requestTokenIfExpired();
         String hexAgency = convertStringToHexstring(agency);
         String hexScheme = convertStringToHexstring(scheme);
         String hexId = convertStringToHexstring(id);
-        HttpRequest httpRequest = requestBuilder
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url + API_ALTERNATIVE_PARTNERS + "(" + JSON_KEY_HEXAGENCY + "='" + hexAgency + "'," + JSON_KEY_HEXSCHEME + "='" + hexScheme + "'," + JSON_KEY_HEXID + "='" + hexId + "')"))
+                .header("x-csrf-token", requestCsrfToken(API_ALTERNATIVE_PARTNERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_ALTERNATIVE_PARTNERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
                 .DELETE()
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -220,7 +270,7 @@ public class HttpRequestHandler {
     // BinaryParameters
 
     public void sendGetRequestBinaryParameters(String pid) throws IOException, InterruptedException {
-        requestTokenIfExpired();
+
         HttpRequest httpRequest = requestBuilder
                 .uri(URI.create(url + API_BINARY_PARAMETERS + "?$filter=startswith(" + JSON_KEY_CONTENT_TYPE + ",'" + JSON_VALUE_XSL + "')%20and%20" + JSON_KEY_PID + "%20eq%20'" + pid + "'"))
                 .GET()
@@ -231,12 +281,16 @@ public class HttpRequestHandler {
     }
 
     public String sendPostRequestBinaryParameters(String pid, String id, String valueAsString) throws IOException, InterruptedException {
-        requestTokenIfExpired();
         String valueEncoded = base64Encoding(valueAsString);
         String jsonBody = createRequestBodyPostBinaryParameters(pid, id, valueEncoded);
 
-        HttpRequest httpRequest = requestBuilder
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url + API_BINARY_PARAMETERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .header("x-csrf-token", requestCsrfToken(API_BINARY_PARAMETERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_BINARY_PARAMETERS))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -244,12 +298,17 @@ public class HttpRequestHandler {
     }
 
     public String sendPutRequestBinaryParameters(String pid, String id, String valueAsString) throws IOException, InterruptedException {
-        requestTokenIfExpired();
+
         String valueEncoded = base64Encoding(valueAsString);
         String jsonBody = createRequestBodyPutBinaryParameters(valueEncoded);
 
-        HttpRequest httpRequest = requestBuilder
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url + API_BINARY_PARAMETERS + "(" + JSON_KEY_PID + "='" + pid + "'," + JSON_KEY_ID + "='" + id + "')"))
+                .header("x-csrf-token", requestCsrfToken(API_BINARY_PARAMETERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_BINARY_PARAMETERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
                 .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -263,7 +322,7 @@ public class HttpRequestHandler {
     // String Parameters
 
     public void sendGetRequestStringParameters(String pid) throws IOException, InterruptedException {
-        requestTokenIfExpired();
+
         HttpRequest httpRequest = requestBuilder
                 .uri(URI.create(url + API_STRING_PARTNERS + "?$filter=" + JSON_KEY_PID + "%20eq%20'" + pid + "'"))
                 .GET()
@@ -274,7 +333,6 @@ public class HttpRequestHandler {
     }
 
     public void sendGetRequestStringParameters(String pid, Set<String> listReceiverNames) throws IOException, InterruptedException {
-        requestTokenIfExpired();
 
         StringBuilder filterReceiverSpecificQueue = new StringBuilder();
         for (String receiverName : listReceiverNames) {
@@ -303,7 +361,8 @@ public class HttpRequestHandler {
     }
 
     public void sendGetRequestStringParameterLandscape() throws IOException, InterruptedException {
-        requestTokenIfExpired();
+
+
         HttpRequest httpRequest = requestBuilder
                 .uri(URI.create(url + API_STRING_PARTNERS + "?$filter=" + JSON_KEY_PID + "%20eq%20'" + STRING_PARAMETER_PID_SAP_INTEGRATION_SUITE_LANDSCAPE + "'"))
                 .GET()
@@ -316,7 +375,6 @@ public class HttpRequestHandler {
 
     public void sendDeleteRequestStringParametersExistingDetermination(String pid, String id) {
         try {
-            requestTokenIfExpired();
             HttpRequest httpRequest = requestBuilder
                     .uri(URI.create(url + API_STRING_PARTNERS + "?$filter=" + JSON_KEY_PID + "%20eq%20'" + pid + "'%20and%20startswith(" + JSON_KEY_ID + ",'" + id + "')"))
                     .GET()
@@ -335,9 +393,14 @@ public class HttpRequestHandler {
 
     public String sendPostRequestStringParameters(String pid, String id, String value) throws IOException, InterruptedException {
         String jsonBody = createRequestBodyPostStringParameters(pid, id, value);
-        requestTokenIfExpired();
-        HttpRequest httpRequest = requestBuilder
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url + API_STRING_PARTNERS))
+                .header("x-csrf-token", requestCsrfToken(API_STRING_PARTNERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_STRING_PARTNERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -346,9 +409,14 @@ public class HttpRequestHandler {
 
     public String sendPutRequestStringParameters(String pid, String id, String value) throws IOException, InterruptedException {
         String jsonBody = createRequestBodyPutStringParameters(value);
-        requestTokenIfExpired();
-        HttpRequest httpRequest = requestBuilder
+
+        HttpRequest httpRequest = HttpRequest.newBuilder() // create new http request builder in order to have a refreshed csrf token header
                 .uri(URI.create(url + API_STRING_PARTNERS + "(" + JSON_KEY_PID + "='" + pid + "'," + JSON_KEY_ID + "='" + id + "')"))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .header("x-csrf-token", requestCsrfToken(API_STRING_PARTNERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_STRING_PARTNERS))
                 .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -361,9 +429,14 @@ public class HttpRequestHandler {
     }
 
     public String sendDeleteRequestStringParameters(String pid, String id) throws IOException, InterruptedException {
-        requestTokenIfExpired();
-        HttpRequest httpRequest = requestBuilder
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url + API_STRING_PARTNERS + "(" + JSON_KEY_PID + "='" + pid + "'," + JSON_KEY_ID + "='" + id + "')"))
+                .header("x-csrf-token", requestCsrfToken(API_STRING_PARTNERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_STRING_PARTNERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
                 .DELETE()
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -371,9 +444,14 @@ public class HttpRequestHandler {
     }
 
     public void sendDeleteRequestStringParameters(String uriToDelete) throws IOException, InterruptedException {
-        requestTokenIfExpired();
-        HttpRequest httpRequest = requestBuilder
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(uriToDelete))
+                .header("x-csrf-token", requestCsrfToken(API_STRING_PARTNERS))
+                .header("Cookie", this.tenantCredentials.getCookie(API_STRING_PARTNERS))
+                .header("Authorization", this.authString)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
                 .DELETE()
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -383,7 +461,6 @@ public class HttpRequestHandler {
     // Transport methods
 
     public void sendGetRequestAlternativePartnersTransport() throws IOException, InterruptedException {
-        requestTokenIfExpired();
 
         String pidsFromBinaryParameters = sendGetRequestParametersWithReceiverDetermination(API_BINARY_PARAMETERS);
         String pidsFromStringParameters = sendGetRequestParametersWithReceiverDetermination(API_STRING_PARTNERS);
@@ -409,9 +486,15 @@ public class HttpRequestHandler {
 
             try {
                 String jsonBody = createRequestBodyPostAlternativePartners(agency, scheme, id, pid);
-                requestTokenIfExpired();
-                HttpRequest httpRequest = requestBuilder
+                requestCsrfToken(API_ALTERNATIVE_PARTNERS);
+
+                HttpRequest httpRequest = HttpRequest.newBuilder()
                         .uri(URI.create(url + API_ALTERNATIVE_PARTNERS))
+                        .header("x-csrf-token", requestCsrfToken(API_ALTERNATIVE_PARTNERS))
+                        .header("Cookie", this.tenantCredentials.getCookie(API_ALTERNATIVE_PARTNERS))
+                        .header("Authorization", this.authString)
+                        .header("Accept", "application/json")
+                        .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                         .build();
                 HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -421,9 +504,15 @@ public class HttpRequestHandler {
                     String hexAgency = convertStringToHexstring(agency);
                     String hexScheme = convertStringToHexstring(scheme);
                     String hexId = convertStringToHexstring(id);
-                    requestTokenIfExpired();
-                    httpRequest = requestBuilder
+                    requestCsrfToken(API_ALTERNATIVE_PARTNERS);
+
+                    httpRequest = HttpRequest.newBuilder()
                             .uri(URI.create(url + API_ALTERNATIVE_PARTNERS + "(" + JSON_KEY_HEXAGENCY + "='" + hexAgency + "'," + JSON_KEY_HEXSCHEME + "='" + hexScheme + "'," + JSON_KEY_HEXID + "='" + hexId + "')"))
+                            .header("x-csrf-token", requestCsrfToken(API_ALTERNATIVE_PARTNERS))
+                            .header("Cookie", this.tenantCredentials.getCookie(API_ALTERNATIVE_PARTNERS))
+                            .header("Authorization", this.authString)
+                            .header("Accept", "application/json")
+                            .header("Content-Type", "application/json")
                             .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
                             .build();
                     httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -447,7 +536,6 @@ public class HttpRequestHandler {
         String filter = buildPidFilterBinaryParameters(pidsToTransport);
 
         try {
-            requestTokenIfExpired();
             HttpRequest httpRequest = requestBuilder
                     .uri(URI.create(url + API_BINARY_PARAMETERS + filter))
                     .GET()
@@ -479,8 +567,8 @@ public class HttpRequestHandler {
                     String jsonBody = createRequestBodyPostBinaryParameters(pid, id, valueEncoded);
 
                     try {
-                        requestTokenIfExpired();
-                        HttpRequest httpRequest = requestBuilder
+                        requestCsrfToken(API_BINARY_PARAMETERS);
+                        HttpRequest httpRequest = HttpRequest.newBuilder()
                                 .uri(URI.create(url + API_BINARY_PARAMETERS))
                                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                                 .build();
@@ -489,7 +577,7 @@ public class HttpRequestHandler {
                         if (httpResponse.statusCode() == 400 && overwrite) {
                             jsonBody = createRequestBodyPutBinaryParameters(valueEncoded);
 
-                            requestTokenIfExpired();
+                            requestCsrfToken(API_BINARY_PARAMETERS);
                             httpRequest = requestBuilder
                                     .uri(URI.create(url + API_BINARY_PARAMETERS + "(" + JSON_KEY_PID + "='" + pid + "'," + JSON_KEY_ID + "='" + id + "')"))
                                     .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
@@ -526,7 +614,6 @@ public class HttpRequestHandler {
         String filter = buildPidFilterStringParameters(pidsToTransport);
 
         try {
-            requestTokenIfExpired();
             HttpRequest httpRequest = requestBuilder
                     .uri(URI.create(url + API_STRING_PARTNERS + filter))
                     .GET()
@@ -557,8 +644,8 @@ public class HttpRequestHandler {
                     String jsonBody = createRequestBodyPostStringParameters(pid, id, value);
 
                     try {
-                        requestTokenIfExpired();
-                        HttpRequest httpRequest = requestBuilder
+                        requestCsrfToken(API_STRING_PARTNERS);
+                        HttpRequest httpRequest = HttpRequest.newBuilder()
                                 .uri(URI.create(url + API_STRING_PARTNERS))
                                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                                 .build();
@@ -567,7 +654,7 @@ public class HttpRequestHandler {
                         if (httpResponse.statusCode() == 400 && overwrite) {
                             jsonBody = createRequestBodyPutStringParameters(value);
 
-                            requestTokenIfExpired();
+                            requestCsrfToken(API_STRING_PARTNERS);
                             httpRequest = requestBuilder
                                     .uri(URI.create(url + API_STRING_PARTNERS + "(" + JSON_KEY_PID + "='" + pid + "'," + JSON_KEY_ID + "='" + id + "')"))
                                     .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
