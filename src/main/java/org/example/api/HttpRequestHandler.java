@@ -2,14 +2,11 @@ package org.example.api;
 
 import org.apache.commons.codec.binary.Hex;
 import org.example.model.AlternativePartner;
-import org.example.ui.pages.AlternativePartnersPage;
 import org.example.utils.TenantCredentials;
-import org.example.ui.MainFrame;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.swing.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -121,14 +118,14 @@ public class HttpRequestHandler {
         return csrfToken;
     }
 
+    /*
     private void requestTokenIfExpired() throws IOException, InterruptedException {
-        /*if (!tenantCredentials.isTokenValid()) {
+        (!tenantCredentials.isTokenValid()) {
             String token = requestToken();
             requestBuilder.setHeader("Authorization", "Bearer " + token);
         }
-        */
-
     }
+    */
 
     private String calculateExpirationDateTime(long tokenExpiresInSeconds) {
         Instant now = Instant.now();

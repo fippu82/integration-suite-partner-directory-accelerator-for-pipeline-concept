@@ -1,7 +1,5 @@
 package org.example.ui.dialogs;
 
-import org.example.utils.TenantCredentials;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;

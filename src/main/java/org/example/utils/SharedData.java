@@ -109,7 +109,7 @@ public final class SharedData {
     public static final String LABEL_SUCCESS = "Success";
     public static final String LABEL_SURE_TO_DELETE = "Are you sure that you want to delete the selected tenant named \"";
     public static final String LABEL_TENANT_NAME = "Tenant Name";
-    public static final String LABEL_TOKEN_URL = "Token URL";
+//    public static final String LABEL_TOKEN_URL = "Token URL";
     public static final String LABEL_TRANSPORT = "Replicate?";
     public static final String LABEL_TRANSPORT_1 = "Replicate ";
     public static final String LABEL_TRANSPORT_2 = " alternative partners with binary / string parameters to selected tenant.";
@@ -185,11 +185,11 @@ public final class SharedData {
     public static final String JSON_KEY_CSRF_TOKEN = "x-csrf-token";
     public static final String JSON_KEY_AGENCY = "Agency";
     public static final String JSON_KEY_CLIENT_ID = "clientid";
-    public static final String JSON_KEY_CLIENT_SECRET = "clientsecret";
+//    public static final String JSON_KEY_CLIENT_SECRET = "clientsecret";
     public static final String JSON_KEY_CRITICAL = "critical";
     public static final String JSON_KEY_CONTENT_TYPE = "ContentType";
     public static final String JSON_KEY_D = "d";
-    public static final String JSON_KEY_EXPIRES_IN = "expires_in";
+//    public static final String JSON_KEY_EXPIRES_IN = "expires_in";
     public static final String JSON_KEY_HEXAGENCY = "Hexagency";
     public static final String JSON_KEY_HEXID = "Hexid";
     public static final String JSON_KEY_HEXSCHEME = "Hexscheme";

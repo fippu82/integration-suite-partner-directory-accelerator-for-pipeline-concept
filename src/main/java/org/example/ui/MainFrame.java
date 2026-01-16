@@ -84,7 +84,7 @@ public class MainFrame extends JFrame {
                 JSONObject jsonObject = new JSONObject(jsonData);
 
                 String url = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_URL) + PATH_TO_API;
-                String tokenUrl = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_TOKEN_URL);
+//                String tokenUrl = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_TOKEN_URL);
                 String clientId = jsonObject.getJSONObject(JSON_KEY_OAUTH).getString(JSON_KEY_CLIENT_ID);
 
                 TenantCredentials tenant = getTenantObjectByCredentials(url, clientId);
