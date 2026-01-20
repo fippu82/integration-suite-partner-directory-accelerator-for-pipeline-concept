@@ -10,6 +10,7 @@ public class LoginDialog extends JDialog {
 
     public LoginDialog(Frame parent ) {
         super(parent, "Login", true); // Modal dialog
+        setAlwaysOnTop(true);
 
         // Set up the layout and components
         setupDialog();
