@@ -9,40 +9,45 @@ import static org.example.utils.SharedData.*;
 
 public class TenantCredentials {
     private final String name;
-    private final boolean critical;
+    private final String headerColorHex;
     private final String url;
     private final String tokenurl;
     private final String clientid;
     private final String clientsecret;
+    private final String user;
     private String accessToken;
     private String tokenExpirationDateTime;
 
-    public TenantCredentials(String name, boolean critical, String url, String tokenurl, String clientid, String clientsecret, String accessToken, String tokenExpirationDateTime) {
+    public TenantCredentials(String name, String url, String tokenurl, String clientid, String clientsecret, String user, String accessToken, String tokenExpirationDateTime, String headerColorHex) {
         this.name = name;
-        this.critical = critical;
+        this.headerColorHex = headerColorHex;
         this.url = url;
         this.tokenurl = tokenurl;
         this.clientid = clientid;
         this.clientsecret = clientsecret;
+        this.user = user;
         this.accessToken = accessToken;
         this.tokenExpirationDateTime = tokenExpirationDateTime;
     }
 
-    public TenantCredentials(String name, boolean critical, String url, String tokenurl, String clientid, String clientsecret) {
-        this.name = name;
-        this.critical = critical;
-        this.url = url;
-        this.tokenurl = tokenurl;
-        this.clientid = clientid;
-        this.clientsecret = clientsecret;
+    public TenantCredentials(String name, String url, String tokenurl, String clientid, String clientsecret, String headerColorHex) {
+        this(name, url, tokenurl, clientid, clientsecret, null, null, null, headerColorHex);
+    }
+
+    public TenantCredentials(String name, String url, String tokenurl, String clientid, String clientsecret, String accessToken, String tokenExpirationDateTime) {
+        this(name, url, tokenurl, clientid, clientsecret, null, accessToken, tokenExpirationDateTime, DEFAULT_TENANT_HEADER_COLOR_HEX);
+    }
+
+    public TenantCredentials(String name, String url, String tokenurl, String clientid, String clientsecret, String accessToken, String tokenExpirationDateTime, String headerColorHex) {
+        this(name, url, tokenurl, clientid, clientsecret, null, accessToken, tokenExpirationDateTime, headerColorHex);
     }
 
     public String getName() {
         return name;
     }
 
-    public boolean isCritical() {
-        return critical;
+    public String getHeaderColorHex() {
+        return headerColorHex;
     }
 
     public String getUrl() {
@@ -59,6 +64,10 @@ public class TenantCredentials {
 
     public String getClientsecret() {
         return clientsecret;
+    }
+
+    public String getUser() {
+        return user;
     }
 
     public String getAccessToken() {
@@ -127,7 +136,7 @@ public class TenantCredentials {
                         tenant.getClientsecret().equals(clientsecret))
                 .findFirst()
                 .orElseGet(() -> {
-                    TenantCredentials newTenant = new TenantCredentials(url, false, url, tokenurl, clientid, clientsecret, null, null);
+                    TenantCredentials newTenant = new TenantCredentials(url, url, tokenurl, clientid, clientsecret, null, null, null, DEFAULT_TENANT_HEADER_COLOR_HEX);
                     tenantCredentialsList.add(newTenant);
                     return newTenant;
                 });

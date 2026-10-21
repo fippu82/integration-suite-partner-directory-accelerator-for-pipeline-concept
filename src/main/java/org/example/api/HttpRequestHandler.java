@@ -12,11 +12,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -374,6 +376,16 @@ public class HttpRequestHandler {
         return null;
     }
 
+    public List<String> deletePartnerId(String pid) {
+        List<String> deleteErrors = new ArrayList<>();
+
+        deleteAlternativePartnersByPid(pid, deleteErrors);
+        deleteBinaryParametersByPid(pid, deleteErrors);
+        deleteStringParametersByPid(pid, deleteErrors);
+
+        return deleteErrors;
+    }
+
     public void transportAlternativePartners(List<AlternativePartner> alternativePartnersToTransport, boolean overwrite, List<String> transportErrors) {
         for (AlternativePartner alternativePartner : alternativePartnersToTransport) {
             String agency = alternativePartner.getAgency();
@@ -512,6 +524,36 @@ public class HttpRequestHandler {
         return null;
     }
 
+    public JSONObject getReceiverSpecificDefaultQueuesToTransport(Set<String> receiverNames) {
+        if (receiverNames == null || receiverNames.isEmpty()) {
+            return null;
+        }
+
+        String filter = buildReceiverSpecificQueueFilterStringParameters(receiverNames);
+
+        try {
+            String endpoint = API_STRING_PARTNERS + filter;
+            return sendGetRequestsAndHandlePagination(endpoint);
+        } catch (Exception e) {
+            LOGGER.error(e);
+        }
+
+        return null;
+    }
+
+    public JSONObject getAlternativePartnersToExport(List<String> pidsToExport) {
+        String filter = buildPidFilterAlternativePartners(pidsToExport);
+
+        try {
+            String endpoint = API_ALTERNATIVE_PARTNERS + filter;
+            return sendGetRequestsAndHandlePagination(endpoint);
+        } catch (Exception e) {
+            LOGGER.error(e);
+        }
+
+        return null;
+    }
+
     public void transportStringParameters(JSONObject jsonObjectToTransport, boolean overwrite, List<String> transportErrors, boolean shouldDeleteOldEntries, HashMap<String, String> oldAndNewPids) {
         try {
             JSONObject dObject = jsonObjectToTransport.getJSONObject(JSON_KEY_D);
@@ -588,6 +630,98 @@ public class HttpRequestHandler {
         return String.valueOf(chars);
     }
 
+    public boolean wasLatestResponseSuccessful() {
+        return this.latestStatusCode >= 200 && this.latestStatusCode <= 299;
+    }
+
+    public String getLatestErrorMessageForUi() {
+        return getLatestErrorMessage();
+    }
+
+    private void deleteAlternativePartnersByPid(String pid, List<String> deleteErrors) {
+        JSONObject alternativePartnersToDelete = getAlternativePartnersToTransport(pid);
+        if (alternativePartnersToDelete == null) {
+            return;
+        }
+
+        JSONArray resultsArray = getResultsArray(alternativePartnersToDelete);
+        LOGGER.info("Found {} alternative partners to delete for Pid {}.", resultsArray.length(), pid);
+
+        for (int i = 0; i < resultsArray.length(); i++) {
+            JSONObject resultObject = resultsArray.getJSONObject(i);
+            String agency = resultObject.getString(JSON_KEY_AGENCY);
+            String scheme = resultObject.getString(JSON_KEY_SCHEME);
+            String id = resultObject.getString(JSON_KEY_ID);
+
+            try {
+                sendDeleteRequestAlternativePartners(agency, scheme, id);
+                if (!wasLatestResponseSuccessful()) {
+                    deleteErrors.add(getLatestErrorMessage());
+                }
+            } catch (Exception e) {
+                String errorMessage = "Error deleting alternative partner (agency: " + agency + ", scheme: " + scheme + ", id: " + id + ", pid: " + pid + "): ";
+                LOGGER.error("{}{}", errorMessage, e);
+                deleteErrors.add(errorMessage + e.getMessage());
+            }
+        }
+    }
+
+    private void deleteBinaryParametersByPid(String pid, List<String> deleteErrors) {
+        JSONObject binaryParametersToDelete = getBinaryParametersToTransport(List.of(pid));
+        if (binaryParametersToDelete == null) {
+            return;
+        }
+
+        JSONArray resultsArray = getResultsArray(binaryParametersToDelete);
+        LOGGER.info("Found {} binary parameters to delete for Pid {}.", resultsArray.length(), pid);
+
+        for (int i = 0; i < resultsArray.length(); i++) {
+            JSONObject resultObject = resultsArray.getJSONObject(i);
+            String id = resultObject.getString(JSON_KEY_ID);
+
+            try {
+                sendDeleteRequestBinaryParameters(pid, id);
+                if (!wasLatestResponseSuccessful()) {
+                    deleteErrors.add(getLatestErrorMessage());
+                }
+            } catch (Exception e) {
+                String errorMessage = "Error deleting binary parameter (id: " + id + ", pid: " + pid + "): ";
+                LOGGER.error("{}{}", errorMessage, e);
+                deleteErrors.add(errorMessage + e.getMessage());
+            }
+        }
+    }
+
+    private void deleteStringParametersByPid(String pid, List<String> deleteErrors) {
+        JSONObject stringParametersToDelete = getStringParametersToTransport(List.of(pid));
+        if (stringParametersToDelete == null) {
+            return;
+        }
+
+        JSONArray resultsArray = getResultsArray(stringParametersToDelete);
+        LOGGER.info("Found {} string parameters to delete for Pid {}.", resultsArray.length(), pid);
+
+        for (int i = 0; i < resultsArray.length(); i++) {
+            JSONObject resultObject = resultsArray.getJSONObject(i);
+            String id = resultObject.getString(JSON_KEY_ID);
+
+            try {
+                sendDeleteRequestStringParameters(pid, id);
+                if (!wasLatestResponseSuccessful()) {
+                    deleteErrors.add(getLatestErrorMessage());
+                }
+            } catch (Exception e) {
+                String errorMessage = "Error deleting string parameter (id: " + id + ", pid: " + pid + "): ";
+                LOGGER.error("{}{}", errorMessage, e);
+                deleteErrors.add(errorMessage + e.getMessage());
+            }
+        }
+    }
+
+    private JSONArray getResultsArray(JSONObject jsonObject) {
+        return jsonObject.getJSONObject(JSON_KEY_D).getJSONArray(JSON_KEY_RESULTS);
+    }
+
     private String buildPidFilterBinaryParameters(List<String> pids) {
         if (pids == null || pids.isEmpty()) {
             return "";
@@ -621,6 +755,41 @@ public class HttpRequestHandler {
             filterBuilder.append(JSON_KEY_PID + "%20eq%20'").append(pid).append("'");
             prefix = "%20or%20";
         }
+
+        return filterBuilder.toString();
+    }
+
+    private String buildPidFilterAlternativePartners(List<String> pids) {
+        if (pids == null || pids.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder filterBuilder = new StringBuilder();
+        filterBuilder.append("?$filter=");
+        String prefix = "";
+
+        for (String pid : pids) {
+            filterBuilder.append(prefix);
+            filterBuilder.append(JSON_KEY_PID).append("%20eq%20'").append(pid).append("'");
+            prefix = "%20or%20";
+        }
+
+        return filterBuilder.toString();
+    }
+
+    private String buildReceiverSpecificQueueFilterStringParameters(Set<String> receiverNames) {
+        StringBuilder filterBuilder = new StringBuilder();
+        filterBuilder.append("?$filter=(");
+        String prefix = "";
+
+        for (String receiverName : receiverNames) {
+            filterBuilder.append(prefix);
+            filterBuilder.append(JSON_KEY_PID).append("%20eq%20'").append(receiverName).append("'");
+            prefix = "%20or%20";
+        }
+
+        filterBuilder.append(")%20and%20").append(JSON_KEY_ID)
+                .append("%20eq%20'").append(STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE).append("'");
 
         return filterBuilder.toString();
     }
@@ -664,8 +833,9 @@ public class HttpRequestHandler {
 
     private String sendPostRequest(String endpoint, String jsonBody, boolean isResponseLogged) throws Exception {
         requestTokenIfExpired();
+        String requestUri = this.url + appendUserQueryParameter(endpoint);
         HttpRequest httpRequest = requestBuilder
-                .uri(URI.create(this.url + endpoint))
+                .uri(URI.create(requestUri))
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -689,8 +859,9 @@ public class HttpRequestHandler {
 
     private void sendPutRequest(String endpoint, String jsonBody, boolean isResponseLogged) throws Exception {
         requestTokenIfExpired();
+        String requestUri = this.url + appendUserQueryParameter(endpoint);
         HttpRequest httpRequest = requestBuilder
-                .uri(URI.create(this.url + endpoint))
+                .uri(URI.create(requestUri))
                 .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
         HttpResponse<String> httpResponse = this.client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -757,5 +928,15 @@ public class HttpRequestHandler {
         setResponseAttributes(response, requestMethod);
         logLatestResponse();
         return this.latestResponseLabel;
+    }
+
+    private String appendUserQueryParameter(String endpoint) {
+        String user = tenantCredentials.getUser();
+        if (user == null || user.isBlank()) {
+            return endpoint;
+        }
+
+        String separator = endpoint.contains("?") ? "&" : "?";
+        return endpoint + separator + JSON_KEY_USER + "=" + URLEncoder.encode(user, StandardCharsets.UTF_8);
     }
 }

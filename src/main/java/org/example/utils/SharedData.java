@@ -20,7 +20,7 @@ import java.util.Map;
 public final class SharedData {
     public static AlternativePartnersPage alternativePartnersPage;
 
-    public static final String UI_TITLE = "Partner Directory Accelerator UI (version 1.1.0)";
+    public static final String UI_TITLE = "Partner Directory Accelerator UI (version 1.1.0 dev)"; // todo: change version before release
     public static final int UI_PADDING = 5;
     public static final int UI_TEXT_FIELD_COLUMNS = 30;
     public static final int UI_SEARCH_FIELD_WIDTH = 15;
@@ -51,17 +51,29 @@ public final class SharedData {
     public static final String LABEL_CLIENT_SECRET = "Client Secret";
     public static final String LABEL_COMBINED_XSLT = "Combined XSLT";
     public static final String LABEL_CONFIRM_CHANGE_PID = "Confirm to change Pid of whole scenario";
+    public static final String LABEL_CONFIRM_DELETE_ENTRY = "Confirm deletion of alternative partner";
+    public static final String LABEL_CONFIRM_DELETE_PARTNER_ID = "Confirm deletion of Partner ID";
+    public static final String LABEL_COPY_SCENARIO = "Copy this scenario";
+    public static final String LABEL_COPY_SCENARIO_DIALOG_TITLE = "Copy Scenario";
+    public static final String LABEL_COPY_SCENARIO_SUCCESSFUL = "Successfully copied the scenario.";
+    public static final String LABEL_COPY_BINARY_PARAMETERS = "Include Binary Parameters (XSLT mappings)";
+    public static final String LABEL_COPY_STRING_PARAMETERS_COPY = "Include String Parameters";
     public static final String LABEL_CONFIRM_MIGRATION_1 = "Confirm migration of ";
     public static final String LABEL_CONFIRM_MIGRATION_2 = " scenario(s) using old partner ID with tilde to new partner ID.";
     public static final String LABEL_CONFIRMATION = "Confirmation";
     public static final String LABEL_CONDITION = "XPath Condition";
     public static final String LABEL_CONTAINS_SYNTAX_ERRORS = " contains syntax errors.";
-    public static final String LABEL_CRITICAL = "Critical";
     public static final String LABEL_DEFAULT = "Default";
     public static final String LABEL_DEFAULT_COMBINED_DETERMINATION = "Use default (combined determination)";
     public static final String LABEL_DELETE = "Delete";
-    public static final String LABEL_DELETE_ENTRY = "Delete this entry";
+    public static final String LABEL_DELETE_ENTRY = "Delete this alternative partner only";
+    public static final String LABEL_DELETE_ENTRY_SUCCESSFUL = "Successfully deleted the alternative partner.";
     public static final String LABEL_DELETE_OLD_ENTRIES = "Delete entries with old Pid";
+    public static final String LABEL_DELETE_PARTNER_ID = "Delete whole scenario of this Partner ID";
+    public static final String LABEL_DELETE_PARTNER_ID_FAILED_1 = "During deletion of the Partner ID, ";
+    public static final String LABEL_DELETE_PARTNER_ID_FAILED_2 = " request(s) failed. Please check the logs for details.";
+    public static final String LABEL_DELETE_PARTNER_ID_RELOAD_REQUIRED = "Some delete requests failed and the overview could not be refreshed automatically. Please reload data from API.";
+    public static final String LABEL_DELETE_PARTNER_ID_SUCCESSFUL = "Successfully deleted the Partner ID and all related entries.";
     public static final String LABEL_DELETE_ROW = "Delete row";
     public static final String LABEL_DELETE_SELECTED_TENANT = "Delete selected tenant";
     public static final String LABEL_DOES_NOT_EXIST = " does not exist.";
@@ -71,6 +83,7 @@ public final class SharedData {
     public static final String LABEL_ERROR = "Error";
     public static final String LABEL_ERROR_ADD_AT_LEAST_ONE_NEW_PARTNER_ID_TO_MIGRATE = "Add at least one new partner id to migrate.";
     public static final String LABEL_ERROR_EMPTY_INPUT = "Input field(s) may not be empty. Please provide all values and send again.";
+    public static final String LABEL_ERROR_EXPORT_TRY_AGAIN = "Error when exporting. Please try again.";
     public static final String LABEL_ERROR_MERGING_XSLT = "Error when merging XSLT";
     public static final String LABEL_ERROR_NEW_PID_ALREADY_EXISTS = "Error when trying to change the Pid: New Pid already exists.";
     public static final String LABEL_ERROR_READING_JSON_FILE = "Error when reading JSON file. Make sure the JSON file is in the right format.";
@@ -87,6 +100,24 @@ public final class SharedData {
     public static final String LABEL_FILL_OUT_ALL_FIELDS = "All fields must be filled out.";
     public static final String LABEL_GENERATE_XSLT = "Generate resulting XSLT";
     public static final String LABEL_GENERATED_XSLT_INVALID_SYNTAX = "The generated XSLT might contain invalid syntax";
+    public static final String LABEL_EXPORT = "Export?";
+    public static final String LABEL_EXPORT_1 = "Export ";
+    public static final String LABEL_EXPORT_2 = " alternative partner(s) to local files.";
+    public static final String LABEL_EXPORT_ALTERNATIVE_PARTNERS = "Export selected entries";
+    public static final String LABEL_EXPORT_BINARY_PARAMETERS = "Include Binary Parameters";
+    public static final String LABEL_EXPORT_COMPLETED = "Finished export. Files were written to: ";
+    public static final String LABEL_EXPORT_ID = "export";
+    public static final String LABEL_EXPORT_STRING_PARAMETERS = "Include String Parameters";
+    public static final String LABEL_IMPORT_PARTNER_DIRECTORY = "Import from local files";
+    public static final String LABEL_IMPORT_FILES_DETECTED = "The following resource files were detected:";
+    public static final String LABEL_IMPORT_START = "Import";
+    public static final String LABEL_IMPORT_FINISHED = "Finished import. ";
+    public static final String LABEL_IMPORT_SUCCESSFUL = "Successfully imported all entries.";
+    public static final String LABEL_IMPORT_FAILED_1 = "During import, ";
+    public static final String LABEL_IMPORT_FAILED_2 = " request(s) failed. Please check the logs for details.";
+    public static final String LABEL_ERROR_IMPORT_TRY_AGAIN = "Error when importing. Please try again.";
+    public static final String LABEL_IMPORT_NO_SUPPORTED_FILES = "No supported files selected. Please select AlternativePartners, BinaryParameters or StringParameters JSON files.";
+    public static final String LABEL_HEADER_COLOR = "Header Color";
     public static final String LABEL_HTTP_ERROR = "ERROR";
     public static final String LABEL_HTTP_SUCCESS = "SUCCESS";
     public static final String LABEL_HTTP_WARNING = "WARNING";
@@ -95,9 +126,8 @@ public final class SharedData {
     public static final String LABEL_ID_ALTERNATIVE_PARTNERS_XI = "Namespace";
     public static final String LABEL_IGNORE = "Ignore";
     public static final String LABEL_INTERFACE_DETERMINATION = "Interface Determination";
-    public static final String LABEL_LANDSCAPE_STAGES = "Landscape Stages";
-    public static final String LABEL_LANDSCAPE_SPECIFIC_SYTEM_NAMES = "Landscape Specific System Names";
-    public static final String LABEL_SND_RCV_SETTINGS = "Snd/Rcv System Settings";
+    public static final String LABEL_LANDSCAPE_SPECIFIC_SYSTEM_NAMES = "Landscape Specific System Names";
+    public static final String LABEL_SND_RCV_SETTINGS = "Sender / Receiver System Settings";
     public static final String LABEL_LAST_TENANT = "Last tenant cannot be deleted. You can still edit this tenant.";
     public static final String LABEL_MAINTAIN_NAMESPACES = "Maintain Namespaces";
     public static final String LABEL_MAINTAIN_LANDSCAPE_FIRST = "To setup landscape stages for a scenario, first maintain String Parameter \"" + STRING_PARAMETER_PID_SAP_INTEGRATION_SUITE_LANDSCAPE + "\" (on bottom of Alternative Partners Page).";
@@ -113,6 +143,7 @@ public final class SharedData {
     public static final String LABEL_MOVE_ROW_DOWN = "Move row down";
     public static final String LABEL_MOVE_ROW_UP = "Move row up";
     public static final String LABEL_MULTIPLE_XSLTS = "Multiple XSLTs";
+    public static final String LABEL_NAMESPACE_DIALOG_EMPTY = "Once there are any namespace prefixes in any of the XPath conditions, they will automatically be shown in this dialog. You can then add corresponding URIs of the namespace prefixes here.";
     public static final String LABEL_NAMESPACE_PREFIX = "Namespace Prefix";
     public static final String LABEL_NAMESPACE_URI = "Namespace URI";
     public static final String LABEL_OVERWRITE_EXISTING_ENTRIES = "Overwrite existing entries";
@@ -127,6 +158,7 @@ public final class SharedData {
     public static final String LABEL_RECEIVER_DETERMINATION = "Receiver Determination";
     public static final String LABEL_RECEIVER_INTERFACE = "Receiver Interface";
     public static final String LABEL_RECEIVER_INTERFACE_DETERMINATION = "Receiver and Interface Determination";
+    public static final String LABEL_RECEIVER_INTERFACE_NAME = "Receiver Interface Name";
     public static final String LABEL_RECEIVER_NOT_FOUND = "If no receiver is found, proceed as follows";
     public static final String LABEL_RECEIVER_QUEUE_TOOLTIP = "This is the name of a scenario specific outbound queue dedicated to the receiver mentioned in the label. Enter the name of the queue including the suffix (\"PIPQ04[suffix]\") that is configure in the Step06 Iflow that you duplicated to process this queue.";
     public static final String LABEL_RCV_SPEC_QUEUE = "Receiver Specific (Default) Queue";
@@ -141,6 +173,8 @@ public final class SharedData {
     public static final String LABEL_SEND_ANYWAY = "Send anyway";
     public static final String LABEL_SEND_ANYWAY_QUESTION = "Do you want to send the shown XSLT to the API anyway?";
     public static final String LABEL_SEND_CHANGES_TO_API = "Send changes to API";
+    public static final String LABEL_SEND_ALTERNATIVE_PARTNER_CHANGES = "Send changes of alternative partner";
+    public static final String LABEL_DISCARD_ALTERNATIVE_PARTNER_CHANGES = "Discard changes";
     public static final String LABEL_SEND_NEW_TO_API = "Send new entry to API";
     public static final String LABEL_SEND_XSLT_TO_API = "Send shown XSLT to API";
     public static final String LABEL_SENDER_DEFAULT = "Default";
@@ -151,9 +185,19 @@ public final class SharedData {
     public static final String LABEL_SELECT_LOCAL_JSON_FILE = "Select local JSON file";
     public static final String LABEL_SHOWN_XSLT_INVALID_SYNTAX = "The shown XSLT might contain invalid syntax";
     public static final String LABEL_STRING_PARAMETERS = "String Parameters";
+    public static final String LABEL_STRING_PARAMETERS_SECTION_GENERAL = "General parameters";
+    public static final String LABEL_STRING_PARAMETERS_SECTION_XI_SPECIFIC = "XI-specific parameters";
+    public static final String LABEL_STRING_PARAMETERS_SECTION_IDOC_SPECIFIC = "IDoc-specific parameters";
+    public static final String LABEL_STRING_PARAMETERS_SECTION_DATA_STORE_EXTENSION = "Data Store Extension";
+    public static final String LABEL_STRING_PARAMETERS_SECTION_IN_ORDER_HANDLING = "In Order Handling";
+    public static final String LABEL_STRING_PARAMETERS_SECTION_RECEIVER_SPECIFIC_QUEUES = "Receiver-specific queues";
     public static final String LABEL_SUCCESS = "Success";
     public static final String LABEL_SURE_TO_DELETE = "Are you sure that you want to delete the selected tenant named \"";
+    public static final String LABEL_SURE_TO_DELETE_ENTRY = "Are you sure that you want to delete this alternative partner?";
+    public static final String LABEL_SURE_TO_DELETE_PARTNER_ID_1 = "Are you sure that you want to delete the whole Partner ID \"";
+    public static final String LABEL_SURE_TO_DELETE_PARTNER_ID_2 = "\" including all alternative partners and related binary / string parameters?";
     public static final String LABEL_TENANT_NAME = "Tenant Name";
+    public static final String LABEL_USER = "User (optional)";
     public static final String LABEL_TOKEN_URL = "Token URL";
     public static final String LABEL_TRANSPORT = "Replicate?";
     public static final String LABEL_TRANSPORT_1 = "Replicate ";
@@ -178,6 +222,7 @@ public final class SharedData {
     public static final String LABEL_VALUE = "Value";
     public static final String LABEL_WARNING = "Warning";
     public static final String LABEL_WARNING_DELETE_LAST_ROW = "Cannot delete the last row.";
+    public static final String LABEL_WARNING_SPACE_IN_INPUT = "This value contains a space character.";
     public static final String LABEL_XSLTS_MERGED_SUCCESSFULLY = "XSLTs were merged successfully.";
 
     public static final String LOGGER_INFO_ALTERNATIVE_PARTNERS_PAGE = "Alternative Partners Page selected";
@@ -193,11 +238,14 @@ public final class SharedData {
     public static final String STRING_PARAMETER_ID_KEEP_BULK = "KeepBulk";
     public static final String STRING_PARAMETER_ID_CUSTOM_X_PRE_ENABLED = "CustomXPreEnabled";
     public static final String STRING_PARAMETER_ID_CUSTOM_X_PRE_ENDPOINT = "CustomXPreEndpoint";
+    public static final String STRING_PARAMETER_ID_CUSTOM_X_POST_ENABLED = "CustomXPostEnabled";
+    public static final String STRING_PARAMETER_ID_CUSTOM_X_POST_ENDPOINT = "CustomXPostEndpoint";
+    public static final String STRING_PARAMETER_ID_PASS_MESSAGE_ID_FROM_E2E = "PassMessageIdFromE2E";
     public static final String STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE = "ReceiverSpecificQueue";
-    public static final String STRING_PARAMETER_LABEL_DATA_STORE = "Date Store Extension - ";
     public static final String STRING_PARAMETER_ID_RETRY_DATA_STORE = "RetryDataStore";
     public static final String STRING_PARAMETER_ID_RESTART_MODE = "restartMode";
     public static final String STRING_PARAMETER_ID_MAX_DATA_STORE_RETRIES = "MaxDataStoreRetries";
+    public static final String STRING_PARAMETER_ID_IN_ORDER_ROUTE_OPTION = "InOrderRouteOption";
     public static final String[] STRING_PARAMETER_IDS_ARRAY = {
             STRING_PARAMETER_ID_INBOUND_CONVERSION_ENDPOINT,
             STRING_PARAMETER_ID_MAX_JMS_RETRIES,
@@ -210,12 +258,41 @@ public final class SharedData {
             STRING_PARAMETER_ID_KEEP_BULK,
             STRING_PARAMETER_ID_CUSTOM_X_PRE_ENABLED,
             STRING_PARAMETER_ID_CUSTOM_X_PRE_ENDPOINT,
-            STRING_PARAMETER_LABEL_DATA_STORE + STRING_PARAMETER_ID_RETRY_DATA_STORE,
-            STRING_PARAMETER_LABEL_DATA_STORE + STRING_PARAMETER_ID_RESTART_MODE,
-            STRING_PARAMETER_LABEL_DATA_STORE + STRING_PARAMETER_ID_MAX_DATA_STORE_RETRIES,
+            STRING_PARAMETER_ID_CUSTOM_X_POST_ENABLED,
+            STRING_PARAMETER_ID_CUSTOM_X_POST_ENDPOINT,
+            STRING_PARAMETER_ID_PASS_MESSAGE_ID_FROM_E2E,
+            STRING_PARAMETER_ID_RETRY_DATA_STORE,
+            STRING_PARAMETER_ID_RESTART_MODE,
+            STRING_PARAMETER_ID_MAX_DATA_STORE_RETRIES,
+            STRING_PARAMETER_ID_IN_ORDER_ROUTE_OPTION,
     };
 
-    public static final String LINK_DOCUMENTATION_STRING_PARAMETERS = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/using-partner-directory-in-pipeline-concept#message-processing-behavior";
+    public static final String LABEL_STRING_PARAMETER_INBOUND_CONVERSION_ENDPOINT_TOOLTIP = "ProcessDirect endpoint of inbound conversion integration flow, if required";
+    public static final String LABEL_STRING_PARAMETER_MAX_JMS_RETRIES_TOOLTIP = "Maximum number of retries";
+    public static final String LABEL_STRING_PARAMETER_REUSE_XRD_ENDPOINT_TOOLTIP = "ProcessDirect endpoint of extended receiver determination integration flow, if required";
+    public static final String LABEL_STRING_PARAMETER_RECEIVER_NOT_DETERMINED_TYPE_TOOLTIP = "Behavior if receiver can't be determined";
+    public static final String LABEL_STRING_PARAMETER_RECEIVER_NOT_DETERMINED_DEFAULT_TOOLTIP = "Default receiver system name";
+    public static final String LABEL_STRING_PARAMETER_CUSTOM_XRD_ENDPOINT_TOOLTIP = "ProcessDirect endpoint of custom receiver determination integration flow, if required";
+    public static final String LABEL_STRING_PARAMETER_CUSTOM_XID_ENDPOINT_TOOLTIP = "ProcessDirect endpoint of custom interface determination integration flow, if required";
+    public static final String LABEL_STRING_PARAMETER_INBOUND_QUEUE_TOOLTIP = "Overwriting the default inbound processing JM queue, if required";
+    public static final String LABEL_STRING_PARAMETER_KEEP_BULK_TOOLTIP = "Only relevant for IDoc bulk messages. Set to true if the IDoc bulk message should not be split into single IDoc messages.";
+    public static final String LABEL_STRING_PARAMETER_CUSTOM_X_PRE_ENABLED_TOOLTIP = "List of pipeline steps for which a custom exit integration flow for preprocessing should be called";
+    public static final String LABEL_STRING_PARAMETER_CUSTOM_X_PRE_ENDPOINT_TOOLTIP = "ProcessDirect endpoint of custom exit integration flow, if required";
+    public static final String LABEL_STRING_PARAMETER_CUSTOM_X_POST_ENABLED_TOOLTIP = "List of pipeline steps for which a custom exit integration flow for postprocessing should be called";
+    public static final String LABEL_STRING_PARAMETER_CUSTOM_X_POST_ENDPOINT_TOOLTIP = "ProcessDirect endpoint of custom postprocessing exit integration flow, if required";
+    public static final String LABEL_STRING_PARAMETER_PASS_MESSAGE_ID_FROM_E2E_TOOLTIP = "Only relevant for XI to XI scenarios. Set to true if the XI message ID from sender should be passed to the XI receiver.";
+    public static final String LABEL_STRING_PARAMETER_RETRY_DATA_STORE_TOOLTIP = "Defines the name of the Data Store where the erroneous message should be stored in case of exceeding maximum number of retry attempts at JMS layer.";
+    public static final String LABEL_STRING_PARAMETER_RESTART_MODE_TOOLTIP = "Can be set to either DS (Data Store) or JMS (JMS queue) to define how the messages should be restarted. Default option is DS if not set.";
+    public static final String LABEL_STRING_PARAMETER_MAX_DATA_STORE_RETRIES_TOOLTIP = "Defines the number of retries after a restart of a message. If the limit is reached, the messaged is moved into the \"_NoRetry\" Data Store. Default number is 5.";
+    public static final String LABEL_STRING_PARAMETER_IN_ORDER_ROUTE_OPTION_TOOLTIP = "Possible values: ExclusiveQueue|ProcessDirect:UseSenderContextAsQueue|<exclusive queue name>|<ProcessDirect end point>";
+
+    public static final String LINK_DOCUMENTATION_STRING_PARAMETERS = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/message-processing-behavior";
+    public static final String LINK_DOCUMENTATION_SECTION_GENERAL_PARAMETERS = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/message-processing-behavior";
+    public static final String LINK_DOCUMENTATION_SECTION_XI_SPECIFIC_PARAMETERS = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/message-processing-behavior#pass-message-id-from-end-to-end";
+    public static final String LINK_DOCUMENTATION_SECTION_IDOC_SPECIFIC_PARAMETERS = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/message-processing-behavior#keep-idoc-bulk";
+    public static final String LINK_DOCUMENTATION_SECTION_IN_ORDER_HANDLING = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/generic-inbound-and-outbound#in-order-handling";
+    public static final String LINK_DOCUMENTATION_SECTION_RECEIVER_SPECIFIC_QUEUES = "https://help.sap.com/docs/migration-guide-po/migration-guide-for-sap-process-orchestration/message-processing-behavior#receiver-specific-outbound-queue";
+    public static final String LINK_DOCUMENTATION_SECTION_DATA_STORE_EXTENSION = "https://community.sap.com/t5/integration-blog-posts/process-integration-pipeline-extension-restart-via-data-store/ba-p/14153116";
 
     public static final String[] LABELS_DETERMINATION_TYPES = {LABEL_COMBINED_XSLT, LABEL_MULTIPLE_XSLTS, LABEL_POINT_TO_POINT};
     public static final String[] LABELS_SENDER_TYPES = {LABEL_SENDER_DEFAULT, LABEL_SENDER_XI};
@@ -243,6 +320,7 @@ public final class SharedData {
     public static final String JSON_KEY_HEXAGENCY = "Hexagency";
     public static final String JSON_KEY_HEXID = "Hexid";
     public static final String JSON_KEY_HEXSCHEME = "Hexscheme";
+    public static final String JSON_KEY_HEADER_COLOR = "headerColor";
     public static final String JSON_KEY_ID = "Id";
     public static final String JSON_KEY_IMPORTANT = "important";
     public static final String JSON_KEY_NAME = "name";
@@ -251,6 +329,7 @@ public final class SharedData {
     public static final String JSON_KEY_RESULTS = "results";
     public static final String JSON_KEY_SCHEME = "Scheme";
     public static final String JSON_KEY_TENANTS = "tenants";
+    public static final String JSON_KEY_USER = "user";
     public static final String JSON_KEY_TOKEN_EXPIRATION_DATE_TIME = "token_expiration_datetime";
     public static final String JSON_KEY_TOKEN_URL = "tokenurl";
     public static final String JSON_KEY_URL = "url";
@@ -282,6 +361,54 @@ public final class SharedData {
     public static final String TILDE = "~";
 
     public static final String DATE_TIME_FORMATTER_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public static final String DEFAULT_TENANT_HEADER_COLOR_HEX = "DEFAULT";
+
+    public static final String HEADER_COLOR_LABEL_DEFAULT = "Default (System Gray)";
+    public static final String HEADER_COLOR_LABEL_BLUE = "Blue";
+    public static final String HEADER_COLOR_LABEL_TEAL = "Teal";
+    public static final String HEADER_COLOR_LABEL_GREEN = "Green";
+    public static final String HEADER_COLOR_LABEL_LIME = "Lime";
+    public static final String HEADER_COLOR_LABEL_YELLOW = "Yellow";
+    public static final String HEADER_COLOR_LABEL_ORANGE = "Orange";
+    public static final String HEADER_COLOR_LABEL_RED = "Red";
+    public static final String HEADER_COLOR_LABEL_PINK = "Pink";
+    public static final String HEADER_COLOR_LABEL_PURPLE = "Purple";
+
+    public static final String HEADER_COLOR_HEX_BLUE = "#1976D2";
+    public static final String HEADER_COLOR_HEX_TEAL = "#00796B";
+    public static final String HEADER_COLOR_HEX_GREEN = "#2E7D32";
+    public static final String HEADER_COLOR_HEX_LIME = "#9E9D24";
+    public static final String HEADER_COLOR_HEX_YELLOW = "#FF8F00";
+    public static final String HEADER_COLOR_HEX_ORANGE = "#EF6C00";
+    public static final String HEADER_COLOR_HEX_RED = "#C62828";
+    public static final String HEADER_COLOR_HEX_PINK = "#AD1457";
+    public static final String HEADER_COLOR_HEX_PURPLE = "#6A1B9A";
+
+    public static final String[] TENANT_HEADER_COLOR_LABELS = {
+            HEADER_COLOR_LABEL_DEFAULT,
+            HEADER_COLOR_LABEL_BLUE,
+            HEADER_COLOR_LABEL_TEAL,
+            HEADER_COLOR_LABEL_GREEN,
+            HEADER_COLOR_LABEL_LIME,
+            HEADER_COLOR_LABEL_YELLOW,
+            HEADER_COLOR_LABEL_ORANGE,
+            HEADER_COLOR_LABEL_RED,
+            HEADER_COLOR_LABEL_PINK,
+            HEADER_COLOR_LABEL_PURPLE
+    };
+
+    public static final String[] TENANT_HEADER_COLOR_HEX_VALUES = {
+            DEFAULT_TENANT_HEADER_COLOR_HEX,
+            HEADER_COLOR_HEX_BLUE,
+            HEADER_COLOR_HEX_TEAL,
+            HEADER_COLOR_HEX_GREEN,
+            HEADER_COLOR_HEX_LIME,
+            HEADER_COLOR_HEX_YELLOW,
+            HEADER_COLOR_HEX_ORANGE,
+            HEADER_COLOR_HEX_RED,
+            HEADER_COLOR_HEX_PINK,
+            HEADER_COLOR_HEX_PURPLE
+    };
 
     public static final int DEFAULT_COLUMNS_TEXT_FIELD = 30;
 

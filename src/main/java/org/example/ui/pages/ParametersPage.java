@@ -10,15 +10,34 @@ import org.example.exceptions.TableEmptyException;
 import org.example.exceptions.XsltNotExistsException;
 import org.example.exceptions.XsltSyntaxException;
 import org.example.model.AlternativePartner;
+import org.example.model.BinaryParameter;
+import org.example.model.StringParameter;
+import org.example.templates.TemplateCombinedDetermination;
+import org.example.templates.TemplateInterfaceDetermination;
+import org.example.templates.TemplateReceiverDetermination;
+import org.example.ui.components.BackButton;
+import org.example.ui.components.EditableHeader;
+import org.example.ui.components.KeyButtonGroup;
+import org.example.ui.components.KeyPanel;
+import org.example.ui.dialogs.SetTypeOfDeterminationDialog;
+import org.example.utils.XsltSyntaxValidator;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rtextarea.RTextScrollPane;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
-
-import java.awt.event.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,25 +46,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.example.model.BinaryParameter;
-import org.example.model.StringParameter;
-import org.example.templates.TemplateInterfaceDetermination;
-import org.example.templates.TemplateReceiverDetermination;
-import org.example.templates.TemplateCombinedDetermination;
-import org.example.ui.components.*;
-import org.example.ui.dialogs.SetTypeOfDeterminationDialog;
-import org.example.utils.XsltSyntaxValidator;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rsyntaxtextarea.Theme;
-import org.fife.ui.rtextarea.RTextScrollPane;
 
 import static org.example.ui.components.LabelTimer.showHttpResponseWithTimer;
 import static org.example.utils.SharedData.*;
 
 public class ParametersPage extends JPanel {
+
+    private static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("([A-Za-z_][A-Za-z0-9_\\-.]*):([A-Za-z_*][A-Za-z0-9_\\-.]*)");
 
     private final TemplateReceiverDetermination objectReceiverDetermination = new TemplateReceiverDetermination();
     private final TemplateInterfaceDetermination objectInterfaceDetermination = new TemplateInterfaceDetermination();
@@ -324,6 +331,13 @@ public class ParametersPage extends JPanel {
         rTextScrollPane.getTextArea().setText(xsltToDisplay);
     }
 
+    private void populateReceiverInterfaceNames(DefaultTableModel tableModel, List<String> receiverInterfaceNames) {
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            String receiverInterfaceName = row < receiverInterfaceNames.size() ? receiverInterfaceNames.get(row) : "";
+            tableModel.setValueAt(receiverInterfaceName, row, 2);
+        }
+    }
+
     private KeyPanel showTableReceiverDetermination(TemplateReceiverDetermination templateReceiverDetermination, boolean showXsltButtons) {
         KeyPanel keyPanel = new KeyPanel(new BorderLayout());
 
@@ -462,7 +476,7 @@ public class ParametersPage extends JPanel {
     }
 
     private KeyPanel showTableInterfaceDetermination(TemplateInterfaceDetermination templateInterfaceDetermination, RTextScrollPane rTextScrollPane, BinaryParameter currentInterfaceDetermination, boolean showXsltButtons) {
-        DefaultTableModel tableModel = new DefaultTableModel(new Object[]{LABEL_CONDITION, LABEL_RECEIVER_INTERFACE}, 0);
+        DefaultTableModel tableModel = new DefaultTableModel(new Object[]{LABEL_CONDITION, LABEL_RECEIVER_INTERFACE, LABEL_RECEIVER_INTERFACE_NAME}, 0);
         JTable table = new JTable(tableModel);
         table.setName(currentInterfaceDetermination.getId());
         table.getTableHeader().setReorderingAllowed(false);
@@ -472,6 +486,8 @@ public class ParametersPage extends JPanel {
         for (String[] strings : dataToInsert) {
             tableModel.addRow(strings);
         }
+        // Use names extracted by the template object (already in correct order)
+        populateReceiverInterfaceNames(tableModel, templateInterfaceDetermination.getReceiverInterfaceNames());
 
         table.setGridColor(Color.BLACK);
 
@@ -517,16 +533,7 @@ public class ParametersPage extends JPanel {
         JPanel browserButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton openBrowserButton = new JButton("Open documentation in browser");
 
-        openBrowserButton.addActionListener(e -> {
-            try {
-                Desktop.getDesktop().browse(new URI(LINK_DOCUMENTATION_STRING_PARAMETERS));
-            } catch (IOException | URISyntaxException ex) {
-                String errorMessage = LABEL_ERROR_WHEN_OPENING_BROWSER + LINK_DOCUMENTATION_STRING_PARAMETERS;
-                LOGGER.error(errorMessage);
-                showErrorDialog(LABEL_ERROR, errorMessage);
-            }
-
-        });
+        openBrowserButton.addActionListener(e -> openDocumentationLink(LINK_DOCUMENTATION_STRING_PARAMETERS));
         browserButtonPanel.add(openBrowserButton);
         jPanel.add(browserButtonPanel, BorderLayout.NORTH);
 
@@ -551,50 +558,62 @@ public class ParametersPage extends JPanel {
             }
         }
 
-        List<String> stringParameterLabelList = new ArrayList<>();
+        Set<String> dataStoreParameters = Set.of(
+                STRING_PARAMETER_ID_RETRY_DATA_STORE,
+                STRING_PARAMETER_ID_RESTART_MODE,
+                STRING_PARAMETER_ID_MAX_DATA_STORE_RETRIES
+        );
+        Set<String> xiSpecificParameters = Set.of(STRING_PARAMETER_ID_PASS_MESSAGE_ID_FROM_E2E);
+        Set<String> idocSpecificParameters = Set.of(STRING_PARAMETER_ID_KEEP_BULK);
+        Set<String> inOrderHandlingParameters = Set.of(STRING_PARAMETER_ID_IN_ORDER_ROUTE_OPTION);
 
-        Collections.addAll(stringParameterLabelList, STRING_PARAMETER_IDS_ARRAY);
-
-        for (String receiverName : listReceiverNames) {
-            stringParameterLabelList.add(STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE + " for Receiver \"" + receiverName + "\"");
+        List<String> generalParameters = new ArrayList<>();
+        List<String> dataStoreExtensionParameters = new ArrayList<>();
+        for (String parameterLabel : STRING_PARAMETER_IDS_ARRAY) {
+            if (dataStoreParameters.contains(parameterLabel)) {
+                dataStoreExtensionParameters.add(parameterLabel);
+                continue;
+            }
+            if (xiSpecificParameters.contains(parameterLabel)
+                    || idocSpecificParameters.contains(parameterLabel)
+                    || inOrderHandlingParameters.contains(parameterLabel)) {
+                continue;
+            }
+            generalParameters.add(parameterLabel);
         }
 
-        for (int i = 0; i < stringParameterLabelList.size(); i++) {
-            String stringParameterLabel = stringParameterLabelList.get(i);
-            String stringParameterId;
-            if (stringParameterLabel.startsWith(STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE)) {
-                stringParameterId = STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE + "_" + stringParameterLabel.replaceAll(".*\"(.*?)\".*", "$1"); // extract receiver for id
-            } else if (stringParameterLabel.startsWith(STRING_PARAMETER_LABEL_DATA_STORE)) {
-                stringParameterId = stringParameterLabel.replace(STRING_PARAMETER_LABEL_DATA_STORE, "");
-            } else {
-                stringParameterId = stringParameterLabel;
+        int rowIndex = 0;
+        rowIndex = addStringParameterSectionHeading(panelStringParameters, gbc, rowIndex, LABEL_STRING_PARAMETERS_SECTION_GENERAL, LINK_DOCUMENTATION_SECTION_GENERAL_PARAMETERS);
+        for (String parameterLabel : generalParameters) {
+            rowIndex = addStringParameterInputRow(panelStringParameters, supportedStringParameterList, gbc, rowIndex, parameterLabel);
+        }
+
+        rowIndex = addStringParameterSectionHeading(panelStringParameters, gbc, rowIndex, LABEL_STRING_PARAMETERS_SECTION_XI_SPECIFIC, LINK_DOCUMENTATION_SECTION_XI_SPECIFIC_PARAMETERS);
+        for (String parameterLabel : xiSpecificParameters) {
+            rowIndex = addStringParameterInputRow(panelStringParameters, supportedStringParameterList, gbc, rowIndex, parameterLabel);
+        }
+
+        rowIndex = addStringParameterSectionHeading(panelStringParameters, gbc, rowIndex, LABEL_STRING_PARAMETERS_SECTION_IDOC_SPECIFIC, LINK_DOCUMENTATION_SECTION_IDOC_SPECIFIC_PARAMETERS);
+        for (String parameterLabel : idocSpecificParameters) {
+            rowIndex = addStringParameterInputRow(panelStringParameters, supportedStringParameterList, gbc, rowIndex, parameterLabel);
+        }
+
+        rowIndex = addStringParameterSectionHeading(panelStringParameters, gbc, rowIndex, LABEL_STRING_PARAMETERS_SECTION_IN_ORDER_HANDLING, LINK_DOCUMENTATION_SECTION_IN_ORDER_HANDLING);
+        for (String parameterLabel : inOrderHandlingParameters) {
+            rowIndex = addStringParameterInputRow(panelStringParameters, supportedStringParameterList, gbc, rowIndex, parameterLabel);
+        }
+
+        if (!listReceiverNames.isEmpty()) {
+            rowIndex = addStringParameterSectionHeading(panelStringParameters, gbc, rowIndex, LABEL_STRING_PARAMETERS_SECTION_RECEIVER_SPECIFIC_QUEUES, LINK_DOCUMENTATION_SECTION_RECEIVER_SPECIFIC_QUEUES);
+            for (String receiverName : listReceiverNames) {
+                String receiverSpecificLabel = STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE + " for Receiver \"" + receiverName + "\"";
+                rowIndex = addStringParameterInputRow(panelStringParameters, supportedStringParameterList, gbc, rowIndex, receiverSpecificLabel);
             }
+        }
 
-            String stringParameterValue;
-            try {
-                stringParameterValue = currentStringParametersList.get(stringParameterId).getValue();
-            } catch (Exception e) {
-                stringParameterValue = "";
-            }
-
-            JPanel panelLabelStringParameter = createFixedSizePanel(new JLabel(colon(stringParameterLabel)), 400);
-            JTextField textFieldStringParameter = new JTextField(stringParameterValue, DEFAULT_COLUMNS_TEXT_FIELD);
-
-            gbc.gridx = 0;
-            gbc.gridy = i;
-            gbc.anchor = GridBagConstraints.LINE_END;
-            panelStringParameters.add(panelLabelStringParameter, gbc);
-
-            gbc.gridx = 1;
-            gbc.anchor = GridBagConstraints.LINE_START;
-            panelStringParameters.add(textFieldStringParameter, gbc);
-
-            if (stringParameterLabel.startsWith(STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE)) {
-                gbc.gridx = 2;
-                panelStringParameters.add(createReceiverQueueInfoLabel(LABEL_RECEIVER_QUEUE_TOOLTIP), gbc);
-            }
-
-            supportedStringParameterList.put(stringParameterId, textFieldStringParameter);
+        rowIndex = addStringParameterSectionHeading(panelStringParameters, gbc, rowIndex, LABEL_STRING_PARAMETERS_SECTION_DATA_STORE_EXTENSION, LINK_DOCUMENTATION_SECTION_DATA_STORE_EXTENSION);
+        for (String parameterLabel : dataStoreExtensionParameters) {
+            rowIndex = addStringParameterInputRow(panelStringParameters, supportedStringParameterList, gbc, rowIndex, parameterLabel);
         }
 
         JScrollPane scrollPaneStringParameters = new JScrollPane(panelStringParameters);
@@ -632,10 +651,13 @@ public class ParametersPage extends JPanel {
         dropdownPanel.add(systemRoleLabel);
 
         JTextField queueField = new JTextField(20);
+        JLabel queueHttpResponseLabel = new JLabel();
+        queueHttpResponseLabel.setVisible(false);
         JPanel queuePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         queuePanel.add(new JLabel(LABEL_RCV_SPEC_QUEUE));
         queuePanel.add(queueField);
         queuePanel.add(createReceiverQueueInfoLabel(LABEL_RECEIVER_DEFAULT_QUEUE_TOOLTIP));
+        queuePanel.add(queueHttpResponseLabel);
 
         JPanel queueSection = new JPanel();
         queueSection.setLayout(new BoxLayout(queueSection, BoxLayout.Y_AXIS));
@@ -666,7 +688,7 @@ public class ParametersPage extends JPanel {
 
         JPanel receiverSettingsPanel = new JPanel();
         receiverSettingsPanel.setLayout(new BoxLayout(receiverSettingsPanel, BoxLayout.Y_AXIS));
-        receiverSettingsPanel.setBorder(BorderFactory.createTitledBorder(LABEL_LANDSCAPE_SPECIFIC_SYTEM_NAMES));
+        receiverSettingsPanel.setBorder(BorderFactory.createTitledBorder(LABEL_LANDSCAPE_SPECIFIC_SYSTEM_NAMES));
         radioPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         contentPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         receiverSettingsPanel.add(radioPanel);
@@ -681,7 +703,7 @@ public class ParametersPage extends JPanel {
         gbc.anchor = GridBagConstraints.WEST;
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.add(getSendButtonLandscape(contentPanel, queueField, dropdown, buttonGroup, receiverNames));
+        buttonPanel.add(getSendButtonLandscape(contentPanel, queueField, queueHttpResponseLabel, dropdown, buttonGroup, receiverNames));
         landscapePanel.add(buttonPanel, BorderLayout.SOUTH);
 
         try {
@@ -779,7 +801,8 @@ public class ParametersPage extends JPanel {
         panel.repaint();
     }
 
-    private JButton getSendButtonLandscape(KeyPanel keyPanel, JTextField queueField, JComboBox<String> dropdown,
+    private JButton getSendButtonLandscape(KeyPanel keyPanel, JTextField queueField, JLabel queueHttpResponseLabel,
+                                           JComboBox<String> dropdown,
                                            ButtonGroup buttonGroup, Set<String> receiverNames) {
         JButton sendButton = new JButton(LABEL_SEND_CHANGES_TO_API);
         sendButton.addActionListener(e -> {
@@ -794,14 +817,17 @@ public class ParametersPage extends JPanel {
                 String oldQueueName = existingQueue == null ? "" : existingQueue.getValue();
                 try {
                     if (!oldQueueName.isEmpty() && queueField.getText().isEmpty()) {
-                        httpRequestHandler.sendDeleteRequestStringParameters(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE);
+                        String httpResponse = httpRequestHandler.sendDeleteRequestStringParameters(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE);
+                        showHttpResponseWithTimer(queueHttpResponseLabel, httpResponse);
                         currentStringParametersList.remove(queueMapKey);
                     } else if (!oldQueueName.isEmpty() && !enteredQueueName.equals(oldQueueName)) {
-                        httpRequestHandler.sendPutRequestStringParameters(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE, queueField.getText());
+                        String httpResponse = httpRequestHandler.sendPutRequestStringParameters(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE, queueField.getText());
+                        showHttpResponseWithTimer(queueHttpResponseLabel, httpResponse);
                         currentStringParametersList.put(queueMapKey,
                                 new StringParameter(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE, enteredQueueName));
                     } else if (oldQueueName.isEmpty() && !enteredQueueName.isEmpty()) {
-                        httpRequestHandler.sendPostRequestStringParameters(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE, queueField.getText());
+                        String httpResponse = httpRequestHandler.sendPostRequestStringParameters(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE, queueField.getText());
+                        showHttpResponseWithTimer(queueHttpResponseLabel, httpResponse);
                         currentStringParametersList.put(queueMapKey,
                                 new StringParameter(selectedSystemNameAlias, STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE, enteredQueueName));
                     }
@@ -903,7 +929,7 @@ public class ParametersPage extends JPanel {
     private JButton getAddRowButton(JTable table, DefaultTableModel tableModel) {
         JButton addButton = new JButton(LABEL_ADD_ROW);
         addButton.addActionListener(e -> {
-            tableModel.addRow(new Object[]{"", ""});
+            tableModel.addRow(new Object[]{"", "", ""});
             int newRowCount = tableModel.getRowCount() - 1;
             table.setRowSelectionInterval(newRowCount, newRowCount);
         });
@@ -1063,8 +1089,10 @@ public class ParametersPage extends JPanel {
                         for (int i = 0; i < tableInterface.getRowCount(); i++) {
                             String condition = (String) tableInterface.getValueAt(i, 0);
                             String interfaceName = (String) tableInterface.getValueAt(i, 1);
+                            String receiverInterfaceName = (String) tableInterface.getValueAt(i, 2);
                             objectCombinedDetermination.mapInterfaceDeterminations.putIfAbsent(entry.getKey(), new TemplateInterfaceDetermination());
                             objectCombinedDetermination.mapInterfaceDeterminations.get(entry.getKey()).setHashMapConditionService(condition, interfaceName);
+                            objectCombinedDetermination.mapInterfaceDeterminations.get(entry.getKey()).addReceiverInterfaceName(receiverInterfaceName);
                         }
                     }
                 }
@@ -1148,7 +1176,9 @@ public class ParametersPage extends JPanel {
                 for (int i = 0; i < table.getRowCount(); i++) {
                     String condition = (String) table.getValueAt(i, 0);
                     String combined = (String) table.getValueAt(i, 1);
+                    String receiverInterfaceName = (String) table.getValueAt(i, 2);
                     objectInterfaceDetermination.setHashMapConditionService(condition, combined);
+                    objectInterfaceDetermination.addReceiverInterfaceName(receiverInterfaceName);
                 }
 
                 objectInterfaceDetermination.setParams();
@@ -1170,53 +1200,44 @@ public class ParametersPage extends JPanel {
 
     private JButton getMaintainNamespacesButton(Map<String, String> namespacesSaved, JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
         JButton namespacesButton = new JButton(LABEL_MAINTAIN_NAMESPACES);
+        AtomicReference<JDialog> dialogReference = new AtomicReference<>();
 
         namespacesButton.addActionListener(e -> {
+            JDialog existingDialog = dialogReference.get();
+            if (existingDialog != null && existingDialog.isDisplayable()) {
+                existingDialog.toFront();
+                existingDialog.requestFocus();
+                return;
+            }
+
             Map<String, String> namespacesTemp = new HashMap<>();
 
             if (namespacesSaved != null) {
                 namespacesTemp.putAll(namespacesSaved);
             }
 
-            Set<String> namespacePrefixes = getNamespacePrefixesFromTablesAndUpdateNamespacesMap(namespacesTemp, tableReceiverDetermination, tablesInterfaceDeterminations);
-
-            JDialog dialog = new JDialog(mainFrame, LABEL_MAINTAIN_NAMESPACES, true);
+            JDialog dialog = new JDialog(mainFrame, LABEL_MAINTAIN_NAMESPACES, false);
             dialog.setLayout(new BorderLayout());
             dialog.setSize(UI_DIALOG_WIDTH, UI_DIALOG_HEIGHT);
             dialog.setLocationRelativeTo(mainFrame);
+            dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            dialogReference.set(dialog);
 
             JPanel namespacesPanel = new JPanel(new GridBagLayout());
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.insets = new Insets(UI_PADDING, 5 * UI_PADDING, UI_PADDING, 5 * UI_PADDING);
-            gbc.anchor = GridBagConstraints.WEST;
+            JScrollPane namespacesScrollPane = new JScrollPane(namespacesPanel);
+            namespacesScrollPane.setBorder(BorderFactory.createEmptyBorder());
+            dialog.add(namespacesScrollPane, BorderLayout.CENTER);
 
-            gbc.gridx = 0;
-            gbc.gridy = 0;
-            JLabel topLabelNamespacePrefix = new JLabel(colon(LABEL_NAMESPACE_PREFIX));
-            namespacesPanel.add(topLabelNamespacePrefix, gbc);
+            Map<String, JTextField> namespaceFields = new LinkedHashMap<>();
+            Set<TableModel> observedTableModels = new HashSet<>();
+            final Runnable[] refreshNamespacesDialog = new Runnable[1];
+            TableModelListener namespaceTableModelListener = tableModelEvent -> SwingUtilities.invokeLater(refreshNamespacesDialog[0]);
 
-            gbc.gridx = 1;
-            JLabel topLabelNamespaceUri = new JLabel(colon(LABEL_NAMESPACE_URI));
-            namespacesPanel.add(topLabelNamespaceUri, gbc);
-
-            Map<JLabel, JTextField> mapLabelField = new HashMap<>();
-            gbc.gridx = 0;
-
-            for (String prefix : namespacePrefixes) {
-                gbc.gridy++;
-                JLabel labelNamespacePrefix = new JLabel(prefix);
-                namespacesPanel.add(labelNamespacePrefix, gbc);
-
-                gbc.gridx = 1;
-                JTextField inputFieldNamespaceUri = new JTextField(namespacesTemp.getOrDefault(prefix, ""), UI_TEXT_FIELD_COLUMNS);
-                namespacesPanel.add(inputFieldNamespaceUri, gbc);
-
-                mapLabelField.put(labelNamespacePrefix, inputFieldNamespaceUri);
-
-                gbc.gridx = 0;
-            }
-
-            dialog.add(namespacesPanel, BorderLayout.CENTER);
+            refreshNamespacesDialog[0] = () -> {
+                updateObservedNamespaceTableModels(observedTableModels, namespaceTableModelListener, tableReceiverDetermination, tablesInterfaceDeterminations);
+                refreshNamespacesPanel(namespacesPanel, namespaceFields, namespacesTemp, tableReceiverDetermination, tablesInterfaceDeterminations);
+            };
+            refreshNamespacesDialog[0].run();
 
             JPanel buttonPanel = new JPanel(new FlowLayout());
 
@@ -1226,9 +1247,10 @@ public class ParametersPage extends JPanel {
 
             JButton saveButton = new JButton(LABEL_SAVE);
             saveButton.addActionListener(e1 -> {
-                namespacesSaved.clear();
-                for (Map.Entry<JLabel, JTextField> entry : mapLabelField.entrySet()) {
-                    namespacesSaved.put(entry.getKey().getText(), entry.getValue().getText());
+                syncNamespaceTextFields(namespaceFields, namespacesTemp);
+                if (namespacesSaved != null) {
+                    namespacesSaved.clear();
+                    namespacesSaved.putAll(namespacesTemp);
                 }
                 dialog.dispose();
             });
@@ -1236,48 +1258,157 @@ public class ParametersPage extends JPanel {
 
             dialog.add(buttonPanel, BorderLayout.SOUTH);
 
+            dialog.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e1) {
+                    for (TableModel tableModel : observedTableModels) {
+                        tableModel.removeTableModelListener(namespaceTableModelListener);
+                    }
+                    observedTableModels.clear();
+                    dialogReference.set(null);
+                }
+            });
+
             dialog.setVisible(true);
         });
 
         return namespacesButton;
     }
 
-    private Set<String> getNamespacePrefixesFromTablesAndUpdateNamespacesMap(Map<String, String> namespacesMap, JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
-        Set<String> namespacePrefixes = new HashSet<>();
+    private void refreshNamespacesPanel(JPanel namespacesPanel, Map<String, JTextField> namespaceFields, Map<String, String> namespacesTemp, JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
+        syncNamespaceTextFields(namespaceFields, namespacesTemp);
+        Set<String> namespacePrefixes = getNamespacePrefixesFromTablesAndUpdateNamespacesMap(namespacesTemp, tableReceiverDetermination, tablesInterfaceDeterminations);
 
+        namespaceFields.clear();
+        namespacesPanel.removeAll();
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(UI_PADDING, 5 * UI_PADDING, UI_PADDING, 5 * UI_PADDING);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+
+        if (namespacePrefixes.isEmpty()) {
+            gbc.gridwidth = 2;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            namespacesPanel.add(new JLabel(formatDialogTextBySentence(LABEL_NAMESPACE_DIALOG_EMPTY)), gbc);
+        } else {
+            namespacesPanel.add(new JLabel(colon(LABEL_NAMESPACE_PREFIX)), gbc);
+
+            gbc.gridx = 1;
+            namespacesPanel.add(new JLabel(colon(LABEL_NAMESPACE_URI)), gbc);
+
+            for (String prefix : namespacePrefixes) {
+                gbc.gridy++;
+                gbc.gridx = 0;
+                namespacesPanel.add(new JLabel(prefix), gbc);
+
+                gbc.gridx = 1;
+                JTextField inputFieldNamespaceUri = new JTextField(namespacesTemp.getOrDefault(prefix, ""), UI_TEXT_FIELD_COLUMNS);
+                namespaceFields.put(prefix, inputFieldNamespaceUri);
+                namespacesPanel.add(inputFieldNamespaceUri, gbc);
+            }
+        }
+
+        namespacesPanel.revalidate();
+        namespacesPanel.repaint();
+    }
+
+    static String formatDialogTextBySentence(String text) {
+        if (text == null || text.isBlank()) {
+            return "<html></html>";
+        }
+
+        return "<html>" + text.trim().replaceAll("\\.\\s+", ".<br>") + "</html>";
+    }
+
+    private void syncNamespaceTextFields(Map<String, JTextField> namespaceFields, Map<String, String> namespacesTemp) {
+        for (Map.Entry<String, JTextField> entry : namespaceFields.entrySet()) {
+            namespacesTemp.put(entry.getKey(), entry.getValue().getText());
+        }
+    }
+
+    private void updateObservedNamespaceTableModels(Set<TableModel> observedTableModels, TableModelListener namespaceTableModelListener, JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
+        Set<TableModel> currentTableModels = new HashSet<>(getNamespaceTableModels(tableReceiverDetermination, tablesInterfaceDeterminations));
+
+        for (TableModel currentTableModel : currentTableModels) {
+            if (observedTableModels.add(currentTableModel)) {
+                currentTableModel.addTableModelListener(namespaceTableModelListener);
+            }
+        }
+
+        Iterator<TableModel> iterator = observedTableModels.iterator();
+        while (iterator.hasNext()) {
+            TableModel observedTableModel = iterator.next();
+            if (!currentTableModels.contains(observedTableModel)) {
+                observedTableModel.removeTableModelListener(namespaceTableModelListener);
+                iterator.remove();
+            }
+        }
+    }
+
+    private List<TableModel> getNamespaceTableModels(JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
+        return getNamespaceTables(tableReceiverDetermination, tablesInterfaceDeterminations).stream()
+                .map(JTable::getModel)
+                .toList();
+    }
+
+    private List<JTable> getNamespaceTables(JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
         List<JTable> tables = new ArrayList<>();
+
         if (tableReceiverDetermination != null) {
             tables.add(tableReceiverDetermination);
         }
         if (tablesInterfaceDeterminations != null) {
-            for (String key : tablesInterfaceDeterminations.keySet()) {
-                if (tablesInterfaceDeterminations.get(key) != null) {
-                    tables.add(tablesInterfaceDeterminations.get(key));
+            for (JTable table : tablesInterfaceDeterminations.values()) {
+                if (table != null) {
+                    tables.add(table);
                 }
             }
         }
 
-        for (JTable table : tables) {
+        return tables;
+    }
+
+    private Set<String> getNamespacePrefixesFromTablesAndUpdateNamespacesMap(Map<String, String> namespacesMap, JTable tableReceiverDetermination, Map<String, JTable> tablesInterfaceDeterminations) {
+        List<String> xPathConditions = new ArrayList<>();
+
+        for (JTable table : getNamespaceTables(tableReceiverDetermination, tablesInterfaceDeterminations)) {
             if (table.isEditing()) {
                 table.getCellEditor().stopCellEditing();
             }
 
             DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
             for (int row = 0; row < tableModel.getRowCount(); row++) {
-                String xPathCondition = (String) tableModel.getValueAt(row, 0);
-
-                Pattern pattern = Pattern.compile("([a-zA-Z0-9_\\-]+):");
-                Matcher matcher = pattern.matcher(xPathCondition);
-
-                while (matcher.find()) {
-                    namespacePrefixes.add(matcher.group(1));
+                Object xPathCondition = tableModel.getValueAt(row, 0);
+                if (xPathCondition instanceof String xPathConditionString) {
+                    xPathConditions.add(xPathConditionString);
                 }
             }
         }
 
+        Set<String> namespacePrefixes = collectNamespacePrefixesFromXPathConditions(xPathConditions);
+
         namespacesMap.keySet().removeIf(namespacePrefixTemp -> !namespacePrefixes.contains(namespacePrefixTemp)); // changes the original namespacesMap so doesn't need to be returned
 
-        return namespacePrefixes.stream().sorted().collect(Collectors.toCollection(LinkedHashSet::new));
+        return namespacePrefixes;
+    }
+
+    static Set<String> collectNamespacePrefixesFromXPathConditions(Collection<String> xPathConditions) {
+        Set<String> namespacePrefixes = new TreeSet<>();
+
+        for (String xPathCondition : xPathConditions) {
+            if (xPathCondition == null || xPathCondition.isBlank()) {
+                continue;
+            }
+
+            Matcher matcher = NAMESPACE_PREFIX_PATTERN.matcher(xPathCondition);
+            while (matcher.find()) {
+                namespacePrefixes.add(matcher.group(1));
+            }
+        }
+
+        return new LinkedHashSet<>(namespacePrefixes);
     }
 
     private JButton getMergeXsltButton() {
@@ -1357,7 +1488,7 @@ public class ParametersPage extends JPanel {
                                     }
 
                                     fileWriter.write(xsltToBackup);
-                                    fileWriter.flush();                                    
+                                    fileWriter.flush();
                                     fileWriter.close();
                                 }
 
@@ -1962,6 +2093,89 @@ public class ParametersPage extends JPanel {
         return layout;
     }
 
+    private int addStringParameterSectionHeading(JPanel panel, GridBagConstraints gbc, int rowIndex, String heading, String documentationLink) {
+        if (rowIndex > 0) {
+            gbc.gridx = 0;
+            gbc.gridy = rowIndex;
+            gbc.gridwidth = 3;
+            panel.add(Box.createVerticalStrut(10), gbc);
+            gbc.gridwidth = 1;
+            rowIndex++;
+        }
+
+        JLabel headingLabel = new JLabel(heading);
+        headingLabel.setFont(headingLabel.getFont().deriveFont(Font.BOLD));
+
+        gbc.gridx = 0;
+        gbc.gridy = rowIndex;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        panel.add(headingLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        panel.add(createOpenDocumentationButton(heading, documentationLink), gbc);
+
+        return rowIndex + 1;
+    }
+
+    private JButton createOpenDocumentationButton(String sectionName, String link) {
+        JButton button = new JButton("Open documentation about " + sectionName);
+        button.addActionListener(e -> openDocumentationLink(link));
+        return button;
+    }
+
+    private void openDocumentationLink(String link) {
+        try {
+            Desktop.getDesktop().browse(new URI(link));
+        } catch (IOException | URISyntaxException ex) {
+            String errorMessage = LABEL_ERROR_WHEN_OPENING_BROWSER + link;
+            LOGGER.error(errorMessage);
+            showErrorDialog(LABEL_ERROR, errorMessage);
+        }
+    }
+
+    private int addStringParameterInputRow(JPanel panel, Map<String, JTextField> supportedStringParameterList, GridBagConstraints gbc, int rowIndex, String stringParameterLabel) {
+        String stringParameterId;
+        if (stringParameterLabel.startsWith(STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE)) {
+            stringParameterId = STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE + "_" + stringParameterLabel.replaceAll(".*\"(.*?)\".*", "$1"); // extract receiver for id
+        } else {
+            stringParameterId = stringParameterLabel;
+        }
+
+        String stringParameterValue;
+        try {
+            stringParameterValue = currentStringParametersList.get(stringParameterId).getValue();
+        } catch (Exception e) {
+            stringParameterValue = "";
+        }
+
+        JPanel panelLabelStringParameter = createFixedSizePanel(new JLabel(colon(stringParameterLabel)), 400);
+        JTextField textFieldStringParameter = new JTextField(stringParameterValue, DEFAULT_COLUMNS_TEXT_FIELD);
+
+        gbc.gridx = 0;
+        gbc.gridy = rowIndex;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        panel.add(panelLabelStringParameter, gbc);
+
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.LINE_START;
+        panel.add(textFieldStringParameter, gbc);
+
+        String tooltipText = getStringParameterTooltip(stringParameterId);
+        if (stringParameterLabel.startsWith(STRING_PARAMETER_ID_RECEIVER_SPECIFIC_QUEUE)) {
+            tooltipText = LABEL_RECEIVER_QUEUE_TOOLTIP;
+        }
+
+        if (tooltipText != null) {
+            gbc.gridx = 2;
+            panel.add(createReceiverQueueInfoLabel(tooltipText), gbc);
+        }
+
+        supportedStringParameterList.put(stringParameterId, textFieldStringParameter);
+        return rowIndex + 1;
+    }
+
     private JPanel createFixedSizePanel(JLabel label, int width) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setPreferredSize(new Dimension(width, 20));
@@ -1971,6 +2185,10 @@ public class ParametersPage extends JPanel {
     }
 
     private JLabel createReceiverQueueInfoLabel(String text) {
+        return createInfoLabel(text);
+    }
+
+    private JLabel createInfoLabel(String text) {
         JLabel infoLabel = new JLabel("ⓘ") {
             @Override
             public JToolTip createToolTip() {
@@ -1986,6 +2204,30 @@ public class ParametersPage extends JPanel {
         toolTipManager.setInitialDelay(0);
         toolTipManager.setDismissDelay(Integer.MAX_VALUE);
         return infoLabel;
+    }
+
+    private String getStringParameterTooltip(String stringParameterId) {
+        return switch (stringParameterId) {
+            case STRING_PARAMETER_ID_INBOUND_CONVERSION_ENDPOINT -> LABEL_STRING_PARAMETER_INBOUND_CONVERSION_ENDPOINT_TOOLTIP;
+            case STRING_PARAMETER_ID_MAX_JMS_RETRIES -> LABEL_STRING_PARAMETER_MAX_JMS_RETRIES_TOOLTIP;
+            case STRING_PARAMETER_ID_REUSE_XRD_ENDPOINT -> LABEL_STRING_PARAMETER_REUSE_XRD_ENDPOINT_TOOLTIP;
+            case STRING_PARAMETER_ID_RECEIVER_NOT_DETERMINED_TYPE -> LABEL_STRING_PARAMETER_RECEIVER_NOT_DETERMINED_TYPE_TOOLTIP;
+            case STRING_PARAMETER_ID_RECEIVER_NOT_DETERMINED_DEFAULT -> LABEL_STRING_PARAMETER_RECEIVER_NOT_DETERMINED_DEFAULT_TOOLTIP;
+            case STRING_PARAMETER_ID_CUSTOM_XRD_ENDPOINT -> LABEL_STRING_PARAMETER_CUSTOM_XRD_ENDPOINT_TOOLTIP;
+            case STRING_PARAMETER_ID_CUSTOM_XID_ENDPOINT -> LABEL_STRING_PARAMETER_CUSTOM_XID_ENDPOINT_TOOLTIP;
+            case STRING_PARAMETER_ID_INBOUND_QUEUE -> LABEL_STRING_PARAMETER_INBOUND_QUEUE_TOOLTIP;
+            case STRING_PARAMETER_ID_KEEP_BULK -> LABEL_STRING_PARAMETER_KEEP_BULK_TOOLTIP;
+            case STRING_PARAMETER_ID_CUSTOM_X_PRE_ENABLED -> LABEL_STRING_PARAMETER_CUSTOM_X_PRE_ENABLED_TOOLTIP;
+            case STRING_PARAMETER_ID_CUSTOM_X_PRE_ENDPOINT -> LABEL_STRING_PARAMETER_CUSTOM_X_PRE_ENDPOINT_TOOLTIP;
+            case STRING_PARAMETER_ID_CUSTOM_X_POST_ENABLED -> LABEL_STRING_PARAMETER_CUSTOM_X_POST_ENABLED_TOOLTIP;
+            case STRING_PARAMETER_ID_CUSTOM_X_POST_ENDPOINT -> LABEL_STRING_PARAMETER_CUSTOM_X_POST_ENDPOINT_TOOLTIP;
+            case STRING_PARAMETER_ID_PASS_MESSAGE_ID_FROM_E2E -> LABEL_STRING_PARAMETER_PASS_MESSAGE_ID_FROM_E2E_TOOLTIP;
+            case STRING_PARAMETER_ID_RETRY_DATA_STORE -> LABEL_STRING_PARAMETER_RETRY_DATA_STORE_TOOLTIP;
+            case STRING_PARAMETER_ID_RESTART_MODE -> LABEL_STRING_PARAMETER_RESTART_MODE_TOOLTIP;
+            case STRING_PARAMETER_ID_MAX_DATA_STORE_RETRIES -> LABEL_STRING_PARAMETER_MAX_DATA_STORE_RETRIES_TOOLTIP;
+            case STRING_PARAMETER_ID_IN_ORDER_ROUTE_OPTION -> LABEL_STRING_PARAMETER_IN_ORDER_ROUTE_OPTION_TOOLTIP;
+            default -> null;
+        };
     }
 
     private String wrapTooltipText(String text, int maxLineLength) {
